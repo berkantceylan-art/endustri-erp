@@ -1,22 +1,23 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  ColumnFiltersState,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
+  useReactTable,
+} from "@tanstack/react-table"
+
 import { deleteCustomer } from '../actions'
 import { Customer } from '../schema'
+import { columns } from "./columns"
+import { DataTableToolbar } from "./data-table-toolbar"
 import { CustomerFormDialog } from './CustomerFormDialog'
 import { CustomerDetailPanel } from './CustomerDetailPanel'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,17 +30,21 @@ import {
 } from '@/components/ui/alert-dialog'
 import { 
   Users, 
-  Search, 
-  Filter, 
-  MoreVertical, 
-  Pencil, 
   Trash2, 
   Plus, 
   Loader2,
   ChevronRight,
-  TrendingUp,
-  MapPin
+  Filter
 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 export function CurrentAccountsClient({ 
   customers, 
@@ -49,25 +54,32 @@ export function CurrentAccountsClient({
   parentCustomers: { id: string, title: string }[] 
 }) {
   const router = useRouter()
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState<string | null>(null)
-  
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(customers?.[0] || null)
-  
   const [alertOpen, setAlertOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // Filtreleme & Arama Mantığı
-  const filteredCustomers = useMemo(() => {
-    return customers?.filter(c => {
-      const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            c.customer_code?.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesFilter = !filterType || c.account_type === filterType
-      return matchesSearch && matchesFilter
-    })
-  }, [customers, searchTerm, filterType])
+  // TanStack Table Kurulumu
+  const table = useReactTable({
+    data: customers || [],
+    columns,
+    state: {
+      columnFilters,
+    },
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
+  })
+
+  // Dinamik Bölgeler
+  const uniqueRegions = useMemo(() => {
+    const set = new Set(customers?.map(c => c.region).filter(Boolean))
+    return Array.from(set) as string[]
+  }, [customers])
 
   const handleEdit = (customer: Customer) => {
     setSelectedCustomer(customer)
@@ -112,7 +124,7 @@ export function CurrentAccountsClient({
       {/* SOL PANEL: MASTER LIST (MASTER) */}
       <div className="w-full lg:w-[400px] xl:w-[450px] border-r border-border/50 flex flex-col bg-card/20 backdrop-blur-md">
         
-        {/* HEADER & SEARCH */}
+        {/* HEADER & DATATABLE TOOLBAR */}
         <div className="p-6 space-y-6 border-b border-border/40">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -126,80 +138,62 @@ export function CurrentAccountsClient({
             </Button>
           </div>
 
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
-            <Input 
-              placeholder="Ünvan veya kod ile ara..." 
-              className="pl-11 h-12 rounded-2xl bg-muted/20 border-transparent focus:bg-background focus:ring-4 focus:ring-primary/10 transition-all font-medium" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-            {['Müşteri', 'Tedarikçi', 'Hem Müşteri Hem Tedarikçi'].map(type => (
-              <Button 
-                key={type}
-                variant={filterType === type ? 'default' : 'outline'}
-                onClick={() => setFilterType(filterType === type ? null : type)}
-                className="rounded-full h-8 text-[10px] font-black uppercase tracking-wider px-4 shrink-0 transition-all"
-              >
-                {type}
-              </Button>
-            ))}
-          </div>
+          <DataTableToolbar table={table} regions={uniqueRegions} />
         </div>
 
-        {/* COMPACT LIST */}
+        {/* COMPACT LIST (RENDERED FROM TABLE DATA) */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
-          {filteredCustomers?.length === 0 ? (
+          {table.getRowModel().rows?.length === 0 ? (
             <div className="text-center py-20 animate-in fade-in duration-500">
                <p className="text-sm font-bold text-muted-foreground/50 uppercase tracking-widest">Kayıt Bulunamadı</p>
             </div>
           ) : (
-            filteredCustomers?.map((customer) => (
-              <div 
-                key={customer.id} 
-                onClick={() => setSelectedCustomer(customer)}
-                className={`
-                  p-4 rounded-[24px] cursor-pointer transition-all duration-300 group relative overflow-hidden border
-                  ${selectedCustomer?.id === customer.id 
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xl shadow-primary/20 scale-[1.02]' 
-                    : 'hover:bg-muted/30 border-transparent hover:border-border/50'
-                  }
-                `}
-              >
-                <div className="flex items-center gap-4 relative z-10">
-                   <div className={`
-                      w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm transition-transform duration-500 group-hover:scale-110
-                      ${selectedCustomer?.id === customer.id ? 'bg-white/20 text-white' : 'bg-primary/5 text-primary'}
-                   `}>
-                     {customer.title.substring(0,2).toUpperCase()}
-                   </div>
-                   <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                         <h3 className="font-bold truncate text-sm">{customer.title}</h3>
-                         <ChevronRight size={14} className={`transition-transform duration-500 ${selectedCustomer?.id === customer.id ? 'translate-x-1 opacity-100' : 'opacity-0'}`} />
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                         <span className={`text-[9px] font-bold uppercase tracking-tighter opacity-70`}>{customer.customer_code || 'KOD YOK'}</span>
-                         <div className={`w-1 h-1 rounded-full ${selectedCustomer?.id === customer.id ? 'bg-white/50' : 'bg-muted-foreground/30'}`} />
-                         <span className="text-[9px] font-bold uppercase tracking-tighter opacity-70 truncate max-w-[100px]">{customer.region || 'Bölge Belirsiz'}</span>
-                      </div>
-                   </div>
+            table.getRowModel().rows.map((row) => {
+              const customer = row.original
+              return (
+                <div 
+                  key={customer.id} 
+                  onClick={() => setSelectedCustomer(customer)}
+                  className={`
+                    p-4 rounded-[24px] cursor-pointer transition-all duration-300 group relative overflow-hidden border
+                    ${selectedCustomer?.id === customer.id 
+                      ? 'bg-primary text-primary-foreground border-primary shadow-xl shadow-primary/20 scale-[1.02]' 
+                      : 'hover:bg-muted/30 border-transparent hover:border-border/50'
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-4 relative z-10">
+                     <div className={`
+                        w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm transition-transform duration-500 group-hover:scale-110
+                        ${selectedCustomer?.id === customer.id ? 'bg-white/20 text-white' : 'bg-primary/5 text-primary'}
+                     `}>
+                       {customer.title.substring(0,2).toUpperCase()}
+                     </div>
+                     <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                           <h3 className="font-bold truncate text-sm">{customer.title}</h3>
+                           <ChevronRight size={14} className={`transition-transform duration-500 ${selectedCustomer?.id === customer.id ? 'translate-x-1 opacity-100' : 'opacity-0'}`} />
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                           <span className={`text-[9px] font-bold uppercase tracking-tighter opacity-70`}>{customer.customer_code || 'KOD YOK'}</span>
+                           <div className={`w-1 h-1 rounded-full ${selectedCustomer?.id === customer.id ? 'bg-white/50' : 'bg-muted-foreground/30'}`} />
+                           <span className="text-[9px] font-bold uppercase tracking-tighter opacity-70 truncate max-w-[100px]">{customer.region || 'Bölge Belirsiz'}</span>
+                        </div>
+                     </div>
+                  </div>
+                  {selectedCustomer?.id === customer.id && (
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12 transition-transform duration-1000 scale-150 blur-2xl" />
+                  )}
                 </div>
-                {selectedCustomer?.id === customer.id && (
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12 transition-transform duration-1000 scale-150 blur-2xl" />
-                )}
-              </div>
-            ))
+              )
+            })
           )}
         </div>
 
         {/* FOOTER STATS */}
         <div className="p-6 border-t border-border/40 bg-muted/5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xl font-black text-primary">{filteredCustomers?.length}</span>
+            <span className="text-xl font-black text-primary">{table.getFilteredRowModel().rows.length}</span>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Kayıt Listelendi</span>
           </div>
           <DropdownMenu>
