@@ -1,11 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createCustomer, updateCustomer, Customer } from '../actions'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { createCustomer, updateCustomer, Customer, customerSchema, CustomerFormValues } from '../actions'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -21,7 +26,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Loader2 } from 'lucide-react'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Loader2, User, Landmark, Truck, MapPin, Info } from 'lucide-react'
 
 interface CustomerFormDialogProps {
   open: boolean
@@ -38,279 +53,566 @@ export function CustomerFormDialog({
 }: CustomerFormDialogProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState('genel')
 
   const isEditMode = !!initialData
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  const form = useForm<CustomerFormValues>({
+    resolver: zodResolver(customerSchema) as any,
+    defaultValues: {
+      title: initialData?.title || '',
+      account_type: (initialData?.account_type as any) || 'Müşteri',
+      customer_code: initialData?.customer_code || '',
+      contact_person: initialData?.contact_person || '',
+      tax_number: initialData?.tax_number || '',
+      tax_office: initialData?.tax_office || '',
+      is_einvoice_user: initialData?.is_einvoice_user || false,
+      einvoice_email: initialData?.einvoice_email || '',
+      phone: initialData?.phone || '',
+      email: initialData?.email || '',
+      iban: initialData?.iban || '',
+      currency: initialData?.currency || 'TRY',
+      credit_limit: Number(initialData?.credit_limit) || 0,
+      price_list_id: initialData?.price_list_id || 'none',
+      custom_discount_rate: Number(initialData?.custom_discount_rate) || 0,
+      payment_term_days: initialData?.payment_term_days || 0,
+      delivery_method: initialData?.delivery_method || 'Kurye',
+      region: initialData?.region || 'Merkez',
+      city: initialData?.city || '',
+      district: initialData?.district || '',
+      address: initialData?.address || '',
+      notes: initialData?.notes || '',
+      parent_id: initialData?.parent_id || 'none',
+    },
+  })
+
+  // Edit modunda verileri formun içine doldur
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        title: initialData.title || '',
+        account_type: (initialData.account_type as any) || 'Müşteri',
+        customer_code: initialData.customer_code || '',
+        contact_person: initialData.contact_person || '',
+        tax_number: initialData.tax_number || '',
+        tax_office: initialData.tax_office || '',
+        is_einvoice_user: initialData.is_einvoice_user || false,
+        einvoice_email: initialData.einvoice_email || '',
+        phone: initialData.phone || '',
+        email: initialData.email || '',
+        iban: initialData.iban || '',
+        currency: initialData.currency || 'TRY',
+        credit_limit: Number(initialData.credit_limit) || 0,
+        price_list_id: initialData.price_list_id || 'none',
+        custom_discount_rate: Number(initialData.custom_discount_rate) || 0,
+        payment_term_days: initialData.payment_term_days || 0,
+        delivery_method: initialData.delivery_method || 'Kurye',
+        region: initialData.region || 'Merkez',
+        city: initialData.city || '',
+        district: initialData.district || '',
+        address: initialData.address || '',
+        notes: initialData.notes || '',
+        parent_id: initialData.parent_id || 'none',
+      })
+    } else {
+      form.reset({
+        title: '',
+        account_type: 'Müşteri',
+        customer_code: '',
+        contact_person: '',
+        tax_number: '',
+        tax_office: '',
+        is_einvoice_user: false,
+        einvoice_email: '',
+        phone: '',
+        email: '',
+        iban: '',
+        currency: 'TRY',
+        credit_limit: 0,
+        price_list_id: 'none',
+        custom_discount_rate: 0,
+        payment_term_days: 0,
+        delivery_method: 'Kurye',
+        region: 'Merkez',
+        city: '',
+        district: '',
+        address: '',
+        notes: '',
+        parent_id: 'none',
+      })
+    }
+  }, [initialData, form, open])
+
+  async function onSubmit(values: CustomerFormValues) {
     setLoading(true)
-    setError(null)
-    const formData = new FormData(event.currentTarget)
-    
     try {
-      let res;
+      let res
       if (isEditMode && initialData?.id) {
-        res = await updateCustomer(initialData.id, formData)
+        res = await updateCustomer(initialData.id, values)
       } else {
-        res = await createCustomer(formData)
+        res = await createCustomer(values)
       }
 
       if (res.success) {
         onOpenChange(false)
         router.refresh()
       } else {
-        setError(res.message || 'Bilinmeyen bir hata oluştu.')
+        alert(res.message || 'Bir hata oluştu')
       }
     } catch (err: any) {
-      setError(err.message)
+      alert(err.message)
     } finally {
       setLoading(false)
     }
   }
 
+  const accountType = form.watch('account_type')
+  const isEInvoice = form.watch('is_einvoice_user')
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* max-w-7xl ile ekranı yatayda maksimum şekilde kaplar, scroll'u ortadan kaldırır */}
-      <DialogContent className="sm:max-w-[95vw] lg:max-w-6xl xl:max-w-7xl max-h-[95vh] p-0 overflow-hidden flex flex-col bg-background/95 backdrop-blur-2xl border-border/50">
-        <div className="px-6 py-5 border-b border-border/50 bg-card/30">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
-              {isEditMode ? 'Cari Kartını Düzenle' : 'Yeni Cari Kartı Oluştur'}
-            </DialogTitle>
-            <DialogDescription>
-              {isEditMode 
-                ? 'Müşteri veya tedarikçi bilgilerini güncelleyin.'
-                : 'Sisteme yeni bir müşteri, tedarikçi veya alt müşteri ekleyin.'}
-            </DialogDescription>
-          </DialogHeader>
-        </div>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0 flex flex-col gap-0 border-none shadow-2xl bg-card">
+        <DialogHeader className="px-8 py-6 bg-gradient-to-br from-primary/5 via-transparent to-transparent border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+              <User size={24} />
+            </div>
+            <div>
+              <DialogTitle className="text-2xl font-bold tracking-tight">
+                {isEditMode ? 'Cari Kartını Düzenle' : 'Yeni Cari Kartı Oluştur'}
+              </DialogTitle>
+              <DialogDescription className="text-sm font-medium">
+                {isEditMode ? 'Mevcut cari hesap bilgilerini güncelleyin.' : 'Sisteme yeni bir cari hesap kaydı ekleyin.'}
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
 
-        <div className="flex-1 px-6 py-6 overflow-y-auto">
-          <form id="customer-form" onSubmit={onSubmit}>
-            {error && (
-              <div className="mb-6 p-4 bg-destructive/10 text-destructive text-sm rounded-xl border border-destructive/20 font-bold flex items-center gap-2">
-                Hata: {error}
-              </div>
-            )}
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          <Form {...form as any}>
+            <form id="customer-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-4 mb-8 bg-muted/50 p-1 rounded-xl h-12">
+                  <TabsTrigger value="genel" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all flex items-center gap-2">
+                    <User size={16} /> Genel
+                  </TabsTrigger>
+                  <TabsTrigger value="finans" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all flex items-center gap-2">
+                    <Landmark size={16} /> Finans
+                  </TabsTrigger>
+                  <TabsTrigger value="ticari" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all flex items-center gap-2">
+                    <Truck size={16} /> Ticari
+                  </TabsTrigger>
+                  <TabsTrigger value="adres" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all flex items-center gap-2">
+                    <MapPin size={16} /> İletişim
+                  </TabsTrigger>
+                </TabsList>
 
-            {/* YATAY (HORIZONTAL) 3 SÜTUNLU YAPI */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-              
-              {/* SÜTUN 1: KİMLİK & İLETİŞİM */}
-              <div className="space-y-5 bg-card/20 p-5 rounded-2xl border border-border/40">
-                <h3 className="text-sm font-black uppercase tracking-widest text-primary/80 border-b border-border/50 pb-2">
-                  1. Kimlik & Sınıflandırma
-                </h3>
-                
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="customer_code" className="text-xs font-bold text-muted-foreground ml-1">Cari Kodu *</Label>
-                      <Input id="customer_code" name="customer_code" required defaultValue={initialData?.customer_code || ''} placeholder="Örn: CARI-001" className="bg-background/50 h-10 font-mono text-sm uppercase" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="customer_type" className="text-xs font-bold text-muted-foreground ml-1">Sınıflandırma / Türü</Label>
-                      <Select name="customer_type" defaultValue={initialData?.customer_type || 'Müşteri'}>
-                        <SelectTrigger className="bg-background/50 h-10">
-                          <SelectValue placeholder="Seçiniz" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Müşteri">Müşteri</SelectItem>
-                          <SelectItem value="Tedarikçi">Tedarikçi</SelectItem>
-                          <SelectItem value="Personel">Personel</SelectItem>
-                          <SelectItem value="Ortak">Ortak</SelectItem>
-                          <SelectItem value="Diğer">Diğer</SelectItem>
-                        </SelectContent>
-                      </Select>
+                {/* SEKME 1: GENEL BİLGİLER */}
+                <TabsContent value="genel" className="animate-in fade-in-50 duration-500">
+                  <div className="grid grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control as any}
+                      name="account_type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">Cari Tipi</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value as any} value={field.value as any}>
+                            <FormControl>
+                              <SelectTrigger className="h-11 rounded-lg border-border/50 bg-muted/20">
+                                <SelectValue placeholder="Seçiniz" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Müşteri">Müşteri</SelectItem>
+                              <SelectItem value="Tedarikçi">Tedarikçi</SelectItem>
+                              <SelectItem value="Hem Müşteri Hem Tedarikçi">Hem Müşteri Hem Tedarikçi</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">Ünvan / Firma Adı *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Resmi Ünvan" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="parent_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">Bağlı Olduğu Ana Cari</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={(field.value as any) || 'none'}
+                            value={(field.value as any) || 'none'}
+                            disabled={accountType === 'Tedarikçi'}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-11 rounded-lg border-border/50 bg-muted/20">
+                                <SelectValue placeholder="Seçiniz" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">Yok (Ana Cari)</SelectItem>
+                              {parentCustomers
+                                .filter(c => c.id !== initialData?.id)
+                                .map(c => (
+                                  <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>B2B2B hiyerarşisi için ana firmayı seçin.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="contact_person"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">Yetkili Kişi</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ad Soyad" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="col-span-2">
+                       <FormField
+                        control={form.control as any}
+                        name="notes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-bold">İç Notlar / CRM</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="Müşteriye özel notlar..." className="min-h-[100px] rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </div>
+                </TabsContent>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="title" className="text-xs font-bold text-muted-foreground ml-1">Cari Ünvanı *</Label>
-                    <Input id="title" name="title" required defaultValue={initialData?.title || ''} placeholder="Tam Ünvan" className="bg-background/50 h-10" />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="tax_number" className="text-xs font-bold text-muted-foreground ml-1">Vergi No / TCKN</Label>
-                      <Input id="tax_number" name="tax_number" defaultValue={initialData?.tax_number || ''} placeholder="No" className="bg-background/50 h-10" />
+                {/* SEKME 2: FİNANS VE RESMİ BİLGİLER */}
+                <TabsContent value="finans" className="animate-in fade-in-50 duration-500">
+                  <div className="grid grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control as any}
+                      name="tax_office"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">Vergi Dairesi</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Daire Adı" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="tax_number"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">VKN / TCKN</FormLabel>
+                          <FormControl>
+                            <Input placeholder="10 veya 11 hane" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex items-center justify-between p-4 border rounded-xl border-border/50 bg-muted/10 col-span-2">
+                      <div className="space-y-0.5">
+                        <Label className="text-base font-bold">e-Fatura Mükellefi</Label>
+                        <p className="text-sm text-muted-foreground">Bu seçimi açtığınızda e-fatura e-postası zorunlu olur.</p>
+                      </div>
+                      <FormField
+                        control={form.control as any}
+                        name="is_einvoice_user"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Switch
+                                checked={field.value as any}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="tax_office" className="text-xs font-bold text-muted-foreground ml-1">Vergi Dairesi</Label>
-                      <Input id="tax_office" name="tax_office" defaultValue={initialData?.tax_office || ''} placeholder="Daire" className="bg-background/50 h-10" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="phone" className="text-xs font-bold text-muted-foreground ml-1">Telefon</Label>
-                    <Input id="phone" name="phone" defaultValue={initialData?.phone || ''} placeholder="05XX XXX XX XX" className="bg-background/50 h-10" />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="address" className="text-xs font-bold text-muted-foreground ml-1">Açık Adres</Label>
-                    <textarea 
-                      id="address" 
-                      name="address" 
-                      defaultValue={initialData?.address || ''} 
-                      placeholder="Mahalle, Sokak, Kapı No vs..." 
-                      className="w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px] resize-none" 
+                    {isEInvoice && (
+                      <FormField
+                        control={form.control as any}
+                        name="einvoice_email"
+                        render={({ field }) => (
+                          <FormItem className="col-span-2 animate-in slide-in-from-top-2 duration-300">
+                            <FormLabel className="font-bold">e-Fatura E-postası *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="fatura@firma.com" className="h-11 rounded-lg border-primary/30 bg-primary/5 focus:bg-background" {...field} value={field.value as any} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    <FormField
+                      control={form.control as any}
+                      name="currency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">Para Birimi</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value as any} value={field.value as any}>
+                            <FormControl>
+                              <SelectTrigger className="h-11 rounded-lg border-border/50 bg-muted/20">
+                                <SelectValue placeholder="Seçiniz" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="TRY">TRY</SelectItem>
+                              <SelectItem value="USD">USD</SelectItem>
+                              <SelectItem value="EUR">EUR</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="credit_limit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">Risk / Kredi Limiti</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0.00" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="iban"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel className="font-bold">IBAN Numarası</FormLabel>
+                          <FormControl>
+                            <Input placeholder="TR..." className="h-11 rounded-lg border-border/50 bg-muted/20 font-mono" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                </div>
-              </div>
+                </TabsContent>
 
-              {/* SÜTUN 2: FİNANS & ÖDEME */}
-              <div className="space-y-5 bg-card/20 p-5 rounded-2xl border border-border/40">
-                <h3 className="text-sm font-black uppercase tracking-widest text-primary/80 border-b border-border/50 pb-2">
-                  2. Finans & Ödeme
-                </h3>
-                
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="currency" className="text-xs font-bold text-muted-foreground ml-1">Para Birimi</Label>
-                      <Select name="currency" defaultValue={initialData?.currency || 'TRY'}>
-                        <SelectTrigger className="bg-background/50 h-10">
-                          <SelectValue placeholder="Seç" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="TRY">TRY</SelectItem>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="EUR">EUR</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-1.5">
-                      <Label htmlFor="payment_term_days" className="text-xs font-bold text-muted-foreground ml-1">Vade Süresi</Label>
-                      <Select name="payment_term_days" defaultValue={initialData?.payment_term_days?.toString() || '0'}>
-                        <SelectTrigger className="bg-background/50 h-10">
-                          <SelectValue placeholder="Seç" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0">Peşin</SelectItem>
-                          <SelectItem value="30">30 Gün</SelectItem>
-                          <SelectItem value="60">60 Gün</SelectItem>
-                          <SelectItem value="90">90 Gün</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                {/* SEKME 3: TİCARİ VE LOJİSTİK KOŞULLAR */}
+                <TabsContent value="ticari" className="animate-in fade-in-50 duration-500">
+                  <div className="grid grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control as any}
+                      name="price_list_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">Tanımlı Fiyat Listesi</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={(field.value as any) || 'none'} value={(field.value as any) || 'none'}>
+                            <FormControl>
+                              <SelectTrigger className="h-11 rounded-lg border-border/50 bg-muted/20">
+                                <SelectValue placeholder="Seçiniz" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">Varsayılan (Standart)</SelectItem>
+                              <SelectItem value="liste-1">VIP Liste</SelectItem>
+                              <SelectItem value="liste-2">Bayi Listesi</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="custom_discount_rate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">Özel İskonto Oranı (%)</FormLabel>
+                          <FormControl>
+                            <Input type="number" max="100" placeholder="0" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="payment_term_days"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">Vade Süresi (Gün)</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="delivery_method"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">Teslimat Şekli</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={(field.value as any) || 'Kurye'} value={(field.value as any) || 'Kurye'}>
+                            <FormControl>
+                              <SelectTrigger className="h-11 rounded-lg border-border/50 bg-muted/20">
+                                <SelectValue placeholder="Seçiniz" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Kurye">Kurye</SelectItem>
+                              <SelectItem value="Kargo">Kargo</SelectItem>
+                              <SelectItem value="Elden">Elden</SelectItem>
+                              <SelectItem value="Lojistik">Lojistik Firması</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="region"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel className="font-bold">Bölge / Rota</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={(field.value as any) || 'Merkez'} value={(field.value as any) || 'Merkez'}>
+                            <FormControl>
+                              <SelectTrigger className="h-11 rounded-lg border-border/50 bg-muted/20">
+                                <SelectValue placeholder="Seçiniz" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Merkez">Merkez</SelectItem>
+                              <SelectItem value="Kuzey Rotası">Kuzey Rotası</SelectItem>
+                              <SelectItem value="Güney Rotası">Güney Rotası</SelectItem>
+                              <SelectItem value="Şehir Dışı">Şehir Dışı</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>Kurye planlaması ve lojistik gruplama için gereklidir.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
+                </TabsContent>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="iban" className="text-xs font-bold text-muted-foreground ml-1">IBAN Numarası</Label>
-                    <Input id="iban" name="iban" defaultValue={initialData?.iban || ''} placeholder="TRXX XXXX XXXX XXXX XXXX XXXX XX" className="bg-background/50 h-10 font-mono text-sm" />
+                {/* SEKME 4: İLETİŞİM VE ADRES */}
+                <TabsContent value="adres" className="animate-in fade-in-50 duration-500">
+                  <div className="grid grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control as any}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">Telefon</FormLabel>
+                          <FormControl>
+                            <Input placeholder="05XX XXX XX XX" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">E-posta</FormLabel>
+                          <FormControl>
+                            <Input placeholder="info@firma.com" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">İl</FormLabel>
+                          <FormControl>
+                            <Input placeholder="İstanbul" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="district"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">İlçe</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Kadıköy" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel className="font-bold">Açık Adres</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Mahalle, Sokak, No..." className="min-h-[100px] rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="price_list_type" className="text-xs font-bold text-muted-foreground ml-1">Fiyat Listesi Tipi</Label>
-                      <Select name="price_list_type" defaultValue={initialData?.price_list_type || 'Standart'}>
-                        <SelectTrigger className="bg-background/50 h-10">
-                          <SelectValue placeholder="Seçiniz" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Standart">Standart</SelectItem>
-                          <SelectItem value="Liste 1">Liste 1 (VIP)</SelectItem>
-                          <SelectItem value="Liste 2">Liste 2</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <input type="hidden" name="price_list_id" value="none" />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="custom_discount_rate" className="text-xs font-bold text-muted-foreground ml-1">İskonto (%)</Label>
-                      <Input id="custom_discount_rate" name="custom_discount_rate" type="number" min="0" max="100" defaultValue={initialData?.custom_discount_rate || 0} className="bg-background/50 h-10" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* SÜTUN 3: OPERASYON & B2B HİYERARŞİ */}
-              <div className="space-y-5 bg-card/20 p-5 rounded-2xl border border-border/40">
-                <h3 className="text-sm font-black uppercase tracking-widest text-primary/80 border-b border-border/50 pb-2">
-                  3. Operasyon & B2B
-                </h3>
-                
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="region" className="text-xs font-bold text-muted-foreground ml-1">Bölge / Rota</Label>
-                      <Select name="region" defaultValue={initialData?.region || 'Merkez'}>
-                        <SelectTrigger className="bg-background/50 h-10">
-                          <SelectValue placeholder="Seçiniz" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Merkez">Merkez</SelectItem>
-                          <SelectItem value="Kuzey Rotası">Kuzey Rotası</SelectItem>
-                          <SelectItem value="Güney Rotası">Güney Rotası</SelectItem>
-                          <SelectItem value="Şehir Dışı">Şehir Dışı</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-1.5">
-                      <Label htmlFor="delivery_method" className="text-xs font-bold text-muted-foreground ml-1">Teslim Şekli</Label>
-                      <Select name="delivery_method" defaultValue={initialData?.delivery_method || 'Kurye'}>
-                        <SelectTrigger className="bg-background/50 h-10">
-                          <SelectValue placeholder="Seçiniz" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Kurye">Kurye</SelectItem>
-                          <SelectItem value="Kargo">Kargo</SelectItem>
-                          <SelectItem value="Elden">Elden</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 pt-2">
-                    <Label htmlFor="parent_id" className="text-xs font-bold text-muted-foreground ml-1">
-                      Üst Cari (Ana Klinik / Bağlı Olduğu Yer)
-                    </Label>
-                    <Select name="parent_id" defaultValue={initialData?.parent_id || 'none'}>
-                      <SelectTrigger className="bg-background/50 h-10">
-                        <SelectValue placeholder="Seçiniz">
-                          {initialData?.parent_id ? (
-                            parentCustomers.find(c => c.id === initialData.parent_id)?.title ?? "Böyle bir cari bulunamadı"
-                          ) : (
-                            "Ana Cari Seçin (Opsiyonel)"
-                          )}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Böyle bir ilişki yok (Ana Cari)</SelectItem>
-                        {parentCustomers
-                          .filter(c => c.id !== initialData?.id)
-                          .map(c => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.title}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[11px] text-muted-foreground/70 pl-1 mt-1">Eğer bu cari bir kliniğin alt şubesi/doktoru ise buradan seçiniz.</p>
-                  </div>
-                </div>
-              </div>
-              
-            </div>
-            
-          </form>
+                </TabsContent>
+              </Tabs>
+            </form>
+          </Form>
         </div>
 
-        <div className="px-6 py-4 border-t border-border/50 bg-card/30">
-          <DialogFooter className="gap-3 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-border">
-              İptal Et
+        <DialogFooter className="px-8 py-6 bg-muted/30 border-t border-border/50 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Info size={16} />
+            <p className="text-xs font-medium">* işaretli alanlar zorunludur.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="px-6 h-11 rounded-xl">
+              İptal
             </Button>
-            <Button type="submit" form="customer-form" disabled={loading} className="bg-primary hover:bg-primary/90 font-bold px-8">
+            <Button type="submit" form="customer-form" disabled={loading} className="px-8 h-11 rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-95">
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditMode ? 'Değişiklikleri Kaydet' : 'Yeni Cari Kaydet'}
+              {isEditMode ? 'Değişiklikleri Kaydet' : 'Cari Kartı Oluştur'}
             </Button>
-          </DialogFooter>
-        </div>
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

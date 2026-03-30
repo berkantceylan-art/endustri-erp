@@ -3,25 +3,39 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export type Customer = {
+import { z } from 'zod'
+
+export const customerSchema = z.object({
+  title: z.string().min(2, 'Ünvan en az 2 karakter olmalıdır'),
+  account_type: z.enum(['Müşteri', 'Tedarikçi', 'Hem Müşteri Hem Tedarikçi']),
+  customer_code: z.string().default(''),
+  contact_person: z.string().default(''),
+  tax_number: z.string().default('').refine(val => !val || (val.length === 10 || val.length === 11), 'Vergi numarası 10 veya 11 hane olmalıdır'),
+  tax_office: z.string().default(''),
+  is_einvoice_user: z.boolean().default(false),
+  einvoice_email: z.string().default(''),
+  phone: z.string().default(''),
+  email: z.string().default(''),
+  iban: z.string().default(''),
+  currency: z.string().default('TRY'),
+  credit_limit: z.coerce.number().min(0).default(0),
+  price_list_id: z.string().default('none'),
+  custom_discount_rate: z.coerce.number().min(0).max(100).default(0),
+  payment_term_days: z.coerce.number().min(0).default(0),
+  delivery_method: z.string().default('Kurye'),
+  region: z.string().default('Merkez'),
+  city: z.string().default(''),
+  district: z.string().default(''),
+  address: z.string().default(''),
+  notes: z.string().default(''),
+  parent_id: z.string().default('none'),
+})
+
+export type CustomerFormValues = z.infer<typeof customerSchema>
+
+export type Customer = CustomerFormValues & {
   id: string
   tenant_id: string
-  title: string
-  customer_code: string | null
-  customer_type: string | null
-  tax_number: string | null
-  tax_office: string | null
-  phone: string | null
-  address: string | null
-  iban: string | null
-  currency: string
-  price_list_type: string | null
-  price_list_id: string | null
-  custom_discount_rate: number
-  payment_term_days: number | null
-  region: string | null
-  delivery_method: string | null
-  parent_id: string | null
   created_at: string
   updated_at: string
   parent?: {
@@ -33,7 +47,6 @@ export type Customer = {
 export async function getCustomers() {
   const supabase = await createClient()
 
-  // Kullanıcının tenant_id'sini users (profiller) tablosundan çek
   const { data: { user }, error: userError } = await supabase.auth.getUser()
   
   if (userError || !user) {
@@ -54,11 +67,9 @@ export async function getCustomers() {
     return []
   }
 
-  // tenant_id'ye göre filtrele
-  // parent_id kolonu üzerinden self-join yaparak title'ı çekiyoruz.
   const { data, error } = await supabase
     .from('customers')
-    .select('*, parent:parent_id(title)')
+    .select('*, parent:customers!parent_id(title)')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 
@@ -70,7 +81,7 @@ export async function getCustomers() {
   return data as Customer[]
 }
 
-// 2. Ana (Parent) Carileri getir (Alt müşteri seçimi için)
+// 2. Ana (Parent) Carileri getir
 export async function getParentCustomers() {
   const supabase = await createClient()
 
@@ -88,7 +99,7 @@ export async function getParentCustomers() {
 }
 
 // 3. Yeni Cari Ekle
-export async function createCustomer(formData: FormData) {
+export async function createCustomer(values: CustomerFormValues) {
   const supabase = await createClient()
 
   const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -106,55 +117,19 @@ export async function createCustomer(formData: FormData) {
 
   const tenant_id = profile.tenant_id
 
-  // Form verilerini çıkar
-  const title = formData.get('title') as string
-  const customer_code = formData.get('customer_code') as string
-  const customer_type = formData.get('customer_type') as string
-  
-  const tax_number = formData.get('tax_number') as string
-  const tax_office = formData.get('tax_office') as string
-  const phone = formData.get('phone') as string
-  const address = formData.get('address') as string
-  const iban = formData.get('iban') as string
-  
-  const currency = formData.get('currency') as string || 'TRY'
-  const customDiscountRateStr = formData.get('custom_discount_rate') as string
-  const customDiscountRate = customDiscountRateStr ? parseInt(customDiscountRateStr, 10) : 0
-
-  const priceListType = formData.get('price_list_type') as string
-  const priceListIdStr = formData.get('price_list_id') as string
-  const priceListId = priceListIdStr && priceListIdStr !== 'none' ? priceListIdStr : null
-
-  const paymentTermDaysStr = formData.get('payment_term_days') as string
-  const paymentTermDays = paymentTermDaysStr ? parseInt(paymentTermDaysStr, 10) : 0
-  
-  const region = formData.get('region') as string
-  const deliveryMethod = formData.get('delivery_method') as string
-  
-  const parentIdStr = formData.get('parent_id') as string
-  const parentId = parentIdStr === 'none' || !parentIdStr ? null : parentIdStr
+  // e-Fatura kontrolü: Eğer mükellefse e-posta zorunlu olsun
+  if (values.is_einvoice_user && !values.einvoice_email) {
+    return { success: false, message: 'e-Fatura mükellefleri için e-fatura e-postası zorunludur.' }
+  }
 
   const { data, error } = await supabase
     .from('customers')
     .insert([
       {
+        ...values,
         tenant_id,
-        title,
-        customer_code: customer_code || null,
-        customer_type: customer_type || 'Müşteri',
-        tax_number: tax_number || null,
-        tax_office: tax_office || null,
-        phone: phone || null,
-        address: address || null,
-        iban: iban || null,
-        currency,
-        custom_discount_rate: customDiscountRate,
-        price_list_type: priceListType || null,
-        price_list_id: priceListId,
-        payment_term_days: paymentTermDays,
-        region: region || null,
-        delivery_method: deliveryMethod || null,
-        parent_id: parentId
+        price_list_id: values.price_list_id === 'none' ? null : values.price_list_id,
+        parent_id: values.parent_id === 'none' ? null : values.parent_id,
       }
     ])
     .select()
@@ -169,54 +144,20 @@ export async function createCustomer(formData: FormData) {
 }
 
 // 4. Mevcut Cariyi Güncelle
-export async function updateCustomer(id: string, formData: FormData) {
+export async function updateCustomer(id: string, values: CustomerFormValues) {
   const supabase = await createClient()
 
-  const title = formData.get('title') as string
-  const customer_code = formData.get('customer_code') as string
-  const customer_type = formData.get('customer_type') as string
-  const tax_number = formData.get('tax_number') as string
-  const tax_office = formData.get('tax_office') as string
-  const phone = formData.get('phone') as string
-  const address = formData.get('address') as string
-  const iban = formData.get('iban') as string
-  
-  const currency = formData.get('currency') as string || 'TRY'
-  const customDiscountRateStr = formData.get('custom_discount_rate') as string
-  const customDiscountRate = customDiscountRateStr ? parseInt(customDiscountRateStr, 10) : 0
-
-  const priceListType = formData.get('price_list_type') as string
-  const priceListIdStr = formData.get('price_list_id') as string
-  const priceListId = priceListIdStr && priceListIdStr !== 'none' ? priceListIdStr : null
-
-  const paymentTermDaysStr = formData.get('payment_term_days') as string
-  const paymentTermDays = paymentTermDaysStr ? parseInt(paymentTermDaysStr, 10) : 0
-  
-  const region = formData.get('region') as string
-  const deliveryMethod = formData.get('delivery_method') as string
-  
-  const parentIdStr = formData.get('parent_id') as string
-  const parentId = parentIdStr === 'none' || !parentIdStr ? null : parentIdStr
+  // e-Fatura kontrolü
+  if (values.is_einvoice_user && !values.einvoice_email) {
+    return { success: false, message: 'e-Fatura mükellefleri için e-fatura e-postası zorunludur.' }
+  }
 
   const { data, error } = await supabase
     .from('customers')
     .update({
-      title,
-      customer_code: customer_code || null,
-      customer_type: customer_type || 'Müşteri',
-      tax_number: tax_number || null,
-      tax_office: tax_office || null,
-      phone: phone || null,
-      address: address || null,
-      iban: iban || null,
-      currency,
-      custom_discount_rate: customDiscountRate,
-      price_list_type: priceListType || null,
-      price_list_id: priceListId,
-      payment_term_days: paymentTermDays,
-      region: region || null,
-      delivery_method: deliveryMethod || null,
-      parent_id: parentId
+      ...values,
+      price_list_id: values.price_list_id === 'none' ? null : values.price_list_id,
+      parent_id: values.parent_id === 'none' ? null : values.parent_id,
     })
     .eq('id', id)
     .select()

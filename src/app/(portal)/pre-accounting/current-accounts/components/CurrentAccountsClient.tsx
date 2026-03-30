@@ -155,9 +155,9 @@ export function CurrentAccountsClient({
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-foreground group-hover:text-primary transition-colors">{customer.title}</span>
-                          {customer.customer_type && (
+                          {customer.account_type && (
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                              {customer.customer_type}
+                              {customer.account_type}
                             </span>
                           )}
                         </div>
@@ -218,7 +218,7 @@ export function CurrentAccountsClient({
                            )}
                         </div>
                         <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                          {customer.price_list_type}
+                          Limit: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: customer.currency || 'TRY' }).format(customer.credit_limit || 0)}
                         </div>
                       </div>
                     </TableCell>
