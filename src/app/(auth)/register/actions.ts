@@ -27,14 +27,20 @@ export async function register(formData: FormData) {
 
   // SUPABASE GÜVENLİK ÖNLEMİ (ENUMERATION PROTECTION) KONTROLÜ
   if (authError || !authData.user) {
-    // Özel durum: E-posta zaten kayıtlıysa yönlendirici mesaj ver
+    console.error("Supabase Auth Registration Error:", authError);
+
+    // Özel durum 1: E-posta zaten kayıtlıysa (veya enumeration protection nedeniyle öyle görünüyorsa)
     if (authError?.message?.includes('already been registered') || 
-        authError?.message?.includes('Email already exists') ||
-        authError?.message?.includes('User not allowed')) {
+        authError?.message?.includes('Email already exists')) {
       return redirect(`/register?message=${encodeURIComponent('Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapmayı deneyin veya şifrenizi sıfırlayın.')}`)
     }
+
+    // Özel durum 2: Supabase Dashboard ayarları nedeniyle engellenme (User not allowed)
+    if (authError?.message?.includes('not allowed') || authError?.status === 403) {
+      return redirect(`/register?message=${encodeURIComponent('Erişim Reddedildi: Supabase Dashboard üzerinden bu e-posta veya alan adına (domain) izin verilmiyor olabilir.')}`)
+    }
     
-    // admin.createUser kullanıldığı için artık sahte kimlik dönmez, doğrudan hata atar
+    // Genel hata durumu
     return redirect(`/register?message=${encodeURIComponent(authError?.message || 'Hesap oluşturulamadı.')}`)
   }
 
