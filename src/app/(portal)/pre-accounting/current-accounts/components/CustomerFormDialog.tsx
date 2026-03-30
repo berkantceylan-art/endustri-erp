@@ -253,11 +253,13 @@ export function CustomerFormDialog({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Böyle bir ilişki yok (Ana Cari)</SelectItem>
-                        {parentCustomers.map(c => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.title}
-                          </SelectItem>
-                        ))}
+                        {parentCustomers
+                          .filter(c => c.id !== initialData?.id)
+                          .map(c => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.title}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                     <p className="text-[11px] text-muted-foreground/70 pl-1 mt-1">Eğer bu cari bir kliniğin alt şubesi/doktoru ise buradan seçiniz.</p>

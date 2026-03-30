@@ -44,11 +44,10 @@ export async function getCustomers() {
 export async function getParentCustomers() {
   const supabase = await createClient()
 
-  // Sadece parent_id'si null olanları getirelim.
+  // Tüm carileri getirelim ki, ara-katman ebeveynler (parent) seçildiğinde formda ID yerine İsim yazabilsin.
   const { data, error } = await supabase
     .from('customers')
     .select('id, title')
-    .is('parent_id', null)
     .order('title', { ascending: true })
 
   if (error) {
