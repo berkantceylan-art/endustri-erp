@@ -8,9 +8,14 @@ export type Customer = {
   tenant_id: string
   title: string
   tax_number: string | null
+  tax_office: string | null
   phone: string | null
   address: string | null
+  iban: string | null
+  currency: string
   price_list_type: string | null
+  price_list_id: string | null
+  custom_discount_rate: number
   payment_term_days: number | null
   region: string | null
   delivery_method: string | null
@@ -22,8 +27,6 @@ export type Customer = {
 export async function getCustomers() {
   const supabase = await createClient()
 
-  // Sadece RLS ile yetkimiz olan (yani kendi tenant_id'miz) cariler döner.
-  // Parent ünvanı gibi ilişkisel verileri de çekebiliriz:
   const { data, error } = await supabase
     .from('customers')
     .select('*, parent:customers(title)')
@@ -37,13 +40,29 @@ export async function getCustomers() {
   return data as (Customer & { parent: { title: string } | null })[]
 }
 
-// 2. Yeni Cari Ekle
+// 2. Ana (Parent) Carileri getir (Alt müşteri seçimi için)
+export async function getParentCustomers() {
+  const supabase = await createClient()
+
+  // Sadece parent_id'si null olanları getirelim.
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id, title')
+    .is('parent_id', null)
+    .order('title', { ascending: true })
+
+  if (error) {
+    console.error('getParentCustomers Error:', error)
+    return []
+  }
+
+  return data as { id: string, title: string }[]
+}
+
+// 3. Yeni Cari Ekle
 export async function createCustomer(formData: FormData) {
   const supabase = await createClient()
 
-  // 1. Geçerli kullanıcının profil (veya Auth) bilgisinden tenant_id'sini bulmalıyız.
-  // Çoğu senaryoda RLS zaten eklerken tenant_id eksikse veya yanlışsa engeller,
-  // ancak DB yapımızda tenant_id NOT NULL olduğu için insert'te manuel vermemiz gerekebilir.
   const { data: { user }, error: userError } = await supabase.auth.getUser()
   if (userError || !user) throw new Error('Oturum bulunamadı')
 
@@ -59,13 +78,23 @@ export async function createCustomer(formData: FormData) {
 
   const tenant_id = profile.tenant_id
 
-  // 2. Form alanlarını al
+  // Form verilerini çıkar
   const title = formData.get('title') as string
   const taxNumber = formData.get('tax_number') as string
+  const taxOffice = formData.get('tax_office') as string
   const phone = formData.get('phone') as string
   const address = formData.get('address') as string
+  const iban = formData.get('iban') as string
+  
+  const currency = formData.get('currency') as string || 'TRY'
+  const customDiscountRateStr = formData.get('custom_discount_rate') as string
+  const customDiscountRate = customDiscountRateStr ? parseInt(customDiscountRateStr, 10) : 0
 
   const priceListType = formData.get('price_list_type') as string
+  // price_list_id şimdilik frontendden gelmeyebilir
+  const priceListIdStr = formData.get('price_list_id') as string
+  const priceListId = priceListIdStr && priceListIdStr !== 'none' ? priceListIdStr : null
+
   const paymentTermDaysStr = formData.get('payment_term_days') as string
   const paymentTermDays = paymentTermDaysStr ? parseInt(paymentTermDaysStr, 10) : 0
   
@@ -75,7 +104,6 @@ export async function createCustomer(formData: FormData) {
   const parentIdStr = formData.get('parent_id') as string
   const parentId = parentIdStr === 'none' || !parentIdStr ? null : parentIdStr
 
-  // 3. Veritabanına kaydet
   const { data, error } = await supabase
     .from('customers')
     .insert([
@@ -83,9 +111,14 @@ export async function createCustomer(formData: FormData) {
         tenant_id,
         title,
         tax_number: taxNumber || null,
+        tax_office: taxOffice || null,
         phone: phone || null,
         address: address || null,
+        iban: iban || null,
+        currency,
+        custom_discount_rate: customDiscountRate,
         price_list_type: priceListType || null,
+        price_list_id: priceListId,
         payment_term_days: paymentTermDays,
         region: region || null,
         delivery_method: deliveryMethod || null,
@@ -99,7 +132,82 @@ export async function createCustomer(formData: FormData) {
     return { success: false, message: error.message }
   }
 
-  // Next.js önbelleğini tazele
   revalidatePath('/pre-accounting/current-accounts')
   return { success: true, data }
+}
+
+// 4. Mevcut Cariyi Güncelle
+export async function updateCustomer(id: string, formData: FormData) {
+  const supabase = await createClient()
+
+  const title = formData.get('title') as string
+  const taxNumber = formData.get('tax_number') as string
+  const taxOffice = formData.get('tax_office') as string
+  const phone = formData.get('phone') as string
+  const address = formData.get('address') as string
+  const iban = formData.get('iban') as string
+  
+  const currency = formData.get('currency') as string || 'TRY'
+  const customDiscountRateStr = formData.get('custom_discount_rate') as string
+  const customDiscountRate = customDiscountRateStr ? parseInt(customDiscountRateStr, 10) : 0
+
+  const priceListType = formData.get('price_list_type') as string
+  const priceListIdStr = formData.get('price_list_id') as string
+  const priceListId = priceListIdStr && priceListIdStr !== 'none' ? priceListIdStr : null
+
+  const paymentTermDaysStr = formData.get('payment_term_days') as string
+  const paymentTermDays = paymentTermDaysStr ? parseInt(paymentTermDaysStr, 10) : 0
+  
+  const region = formData.get('region') as string
+  const deliveryMethod = formData.get('delivery_method') as string
+  
+  const parentIdStr = formData.get('parent_id') as string
+  const parentId = parentIdStr === 'none' || !parentIdStr ? null : parentIdStr
+
+  const { data, error } = await supabase
+    .from('customers')
+    .update({
+      title,
+      tax_number: taxNumber || null,
+      tax_office: taxOffice || null,
+      phone: phone || null,
+      address: address || null,
+      iban: iban || null,
+      currency,
+      custom_discount_rate: customDiscountRate,
+      price_list_type: priceListType || null,
+      price_list_id: priceListId,
+      payment_term_days: paymentTermDays,
+      region: region || null,
+      delivery_method: deliveryMethod || null,
+      parent_id: parentId
+    })
+    .eq('id', id)
+    .select()
+
+  if (error) {
+    console.error('updateCustomer Error:', error)
+    return { success: false, message: error.message }
+  }
+
+  revalidatePath('/pre-accounting/current-accounts')
+  return { success: true, data }
+}
+
+// 5. Cariyi Sil
+export async function deleteCustomer(id: string) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('customers')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('deleteCustomer Error:', error)
+    return { success: false, message: error.message }
+  }
+
+  revalidatePath('/pre-accounting/current-accounts')
+  return { success: true }
 }
