@@ -271,7 +271,13 @@ export function CustomerFormDialog({
                     </Label>
                     <Select name="parent_id" defaultValue={initialData?.parent_id || 'none'}>
                       <SelectTrigger className="bg-background/50 h-10">
-                        <SelectValue placeholder="Ana Cari Seçin (Opsiyonel)" />
+                        <SelectValue placeholder="Seçiniz">
+                          {initialData?.parent_id ? (
+                            parentCustomers.find(c => c.id === initialData.parent_id)?.title ?? "Böyle bir cari bulunamadı"
+                          ) : (
+                            "Ana Cari Seçin (Opsiyonel)"
+                          )}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Böyle bir ilişki yok (Ana Cari)</SelectItem>

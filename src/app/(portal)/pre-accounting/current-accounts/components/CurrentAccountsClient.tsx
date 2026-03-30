@@ -173,11 +173,19 @@ export function CurrentAccountsClient({
                     </TableCell>
                     <TableCell className="text-sm font-medium">
                       {customer.parent?.title ? (
-                        <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-bold rounded-lg border border-primary/20">
-                          {customer.parent.title}
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-1 bg-blue-500/10 text-blue-600 text-xs font-bold rounded-lg border border-blue-500/20 whitespace-nowrap">
+                            {customer.parent.title}
+                          </span>
+                        </div>
+                      ) : customer.parent_id ? (
+                        <span className="text-[10px] font-mono text-muted-foreground bg-muted p-1 rounded">
+                          Bağlı (ID: {customer.parent_id.slice(0,8)}...)
                         </span>
                       ) : (
-                        <span className="text-muted-foreground/40 font-semibold text-xs border border-border rounded-lg px-2 py-1 bg-muted/50">ANA CARİ</span>
+                        <span className="text-muted-foreground/30 font-black text-[10px] border border-border/50 rounded-lg px-2 py-1 bg-muted/20 tracking-tighter uppercase">
+                          ANA CARİ (Üst Yok)
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>

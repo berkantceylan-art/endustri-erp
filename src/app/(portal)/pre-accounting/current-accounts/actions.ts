@@ -55,9 +55,10 @@ export async function getCustomers() {
   }
 
   // tenant_id'ye göre filtrele
+  // parent_id kolonu üzerinden self-join yaparak title'ı çekiyoruz.
   const { data, error } = await supabase
     .from('customers')
-    .select('*, parent:customers(title)')
+    .select('*, parent:parent_id(title)')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 
@@ -110,8 +111,8 @@ export async function createCustomer(formData: FormData) {
   const customer_code = formData.get('customer_code') as string
   const customer_type = formData.get('customer_type') as string
   
-  const taxNumber = formData.get('tax_number') as string
-  const taxOffice = formData.get('tax_office') as string
+  const tax_number = formData.get('tax_number') as string
+  const tax_office = formData.get('tax_office') as string
   const phone = formData.get('phone') as string
   const address = formData.get('address') as string
   const iban = formData.get('iban') as string
@@ -141,8 +142,8 @@ export async function createCustomer(formData: FormData) {
         title,
         customer_code: customer_code || null,
         customer_type: customer_type || 'Müşteri',
-        tax_number: taxNumber || null,
-        tax_office: taxOffice || null,
+        tax_number: tax_number || null,
+        tax_office: tax_office || null,
         phone: phone || null,
         address: address || null,
         iban: iban || null,
@@ -174,8 +175,8 @@ export async function updateCustomer(id: string, formData: FormData) {
   const title = formData.get('title') as string
   const customer_code = formData.get('customer_code') as string
   const customer_type = formData.get('customer_type') as string
-  const taxNumber = formData.get('tax_number') as string
-  const taxOffice = formData.get('tax_office') as string
+  const tax_number = formData.get('tax_number') as string
+  const tax_office = formData.get('tax_office') as string
   const phone = formData.get('phone') as string
   const address = formData.get('address') as string
   const iban = formData.get('iban') as string
@@ -203,8 +204,8 @@ export async function updateCustomer(id: string, formData: FormData) {
       title,
       customer_code: customer_code || null,
       customer_type: customer_type || 'Müşteri',
-      tax_number: taxNumber || null,
-      tax_office: taxOffice || null,
+      tax_number: tax_number || null,
+      tax_office: tax_office || null,
       phone: phone || null,
       address: address || null,
       iban: iban || null,
