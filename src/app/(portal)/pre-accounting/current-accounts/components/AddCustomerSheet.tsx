@@ -53,14 +53,14 @@ export function AddCustomerSheet({ allCustomers }: { allCustomers: Customer[] })
   }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button className="flex items-center gap-2">
-          <Plus size={16} /> Cari Ekle
-        </Button>
-      </SheetTrigger>
-      <SheetContent className="sm:max-w-md overflow-y-auto w-full md:w-[600px] border-l border-border/50 backdrop-blur-3xl bg-background/95">
-        <SheetHeader className="mb-6">
+    <>
+      <Button className="flex items-center gap-2" onClick={() => setOpen(true)}>
+        <Plus size={16} /> Cari Ekle
+      </Button>
+
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent className="sm:max-w-md overflow-y-auto w-full md:w-[600px] border-l border-border/50 backdrop-blur-3xl bg-background/95">
+          <SheetHeader className="mb-6">
           <SheetTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
             Yeni Cari Kartı
           </SheetTitle>
@@ -190,11 +190,9 @@ export function AddCustomerSheet({ allCustomers }: { allCustomers: Customer[] })
           </div>
 
           <SheetFooter className="mt-8 gap-3 sm:gap-0">
-            <SheetClose asChild>
-              <Button type="button" variant="outline" className="border-border">
-                İptal Et
-              </Button>
-            </SheetClose>
+            <Button type="button" variant="outline" className="border-border" onClick={() => setOpen(false)}>
+              İptal Et
+            </Button>
             <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90">
               {loading ? 'Kaydediliyor...' : 'Kaydet'}
             </Button>
@@ -202,5 +200,6 @@ export function AddCustomerSheet({ allCustomers }: { allCustomers: Customer[] })
         </form>
       </SheetContent>
     </Sheet>
+    </>
   )
 }
