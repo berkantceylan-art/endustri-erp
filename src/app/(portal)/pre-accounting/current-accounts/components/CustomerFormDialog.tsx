@@ -37,7 +37,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Loader2, User, Landmark, Truck, MapPin, Info } from 'lucide-react'
+import { Loader2, User, Landmark, Truck, MapPin, Info, History as HistoryIcon } from 'lucide-react'
 
 interface CustomerFormDialogProps {
   open: boolean
@@ -172,7 +172,7 @@ export function CustomerFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0 flex flex-col gap-0 border-none shadow-2xl bg-card">
+      <DialogContent className="max-w-[95vw] w-full max-w-[1600px] max-h-[92vh] overflow-hidden p-0 flex flex-col gap-0 border-none shadow-2xl bg-card transition-all duration-500">
         <DialogHeader className="px-8 py-6 bg-gradient-to-br from-primary/5 via-transparent to-transparent border-b border-border/50">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
@@ -189,28 +189,42 @@ export function CustomerFormDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          <Form {...form as any}>
+        <div className="flex-1 overflow-hidden flex">
+          {/* SOL TARAF: FORM ALANI */}
+          <div className="flex-1 overflow-y-auto px-10 py-8 border-r border-border/40">
+            <Form {...form as any}>
             <form id="customer-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-8 bg-muted/50 p-1 rounded-xl h-12">
-                  <TabsTrigger value="genel" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all flex items-center gap-2">
-                    <User size={16} /> Genel
+                <TabsList className="grid w-full grid-cols-4 mb-10 bg-muted/30 p-1.5 rounded-2xl h-14 backdrop-blur-sm border border-border/20 shadow-inner">
+                  <TabsTrigger value="genel" className="rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-lg data-[state=active]:text-primary transition-all duration-300 flex items-center gap-3 text-sm font-semibold">
+                    <div className="p-1.5 rounded-lg bg-primary/5 group-data-[state=active]:bg-primary/10">
+                      <User size={18} />
+                    </div> 
+                    Genel Bilgiler
                   </TabsTrigger>
-                  <TabsTrigger value="finans" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all flex items-center gap-2">
-                    <Landmark size={16} /> Finans
+                  <TabsTrigger value="finans" className="rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-lg data-[state=active]:text-primary transition-all duration-300 flex items-center gap-3 text-sm font-semibold">
+                    <div className="p-1.5 rounded-lg bg-primary/5">
+                      <Landmark size={18} />
+                    </div>
+                    Finansal Detaylar
                   </TabsTrigger>
-                  <TabsTrigger value="ticari" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all flex items-center gap-2">
-                    <Truck size={16} /> Ticari
+                  <TabsTrigger value="ticari" className="rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-lg data-[state=active]:text-primary transition-all duration-300 flex items-center gap-3 text-sm font-semibold">
+                    <div className="p-1.5 rounded-lg bg-primary/5">
+                      <Truck size={18} />
+                    </div>
+                    Ticari Koşullar
                   </TabsTrigger>
-                  <TabsTrigger value="adres" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all flex items-center gap-2">
-                    <MapPin size={16} /> İletişim
+                  <TabsTrigger value="adres" className="rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-lg data-[state=active]:text-primary transition-all duration-300 flex items-center gap-3 text-sm font-semibold">
+                    <div className="p-1.5 rounded-lg bg-primary/5">
+                      <MapPin size={18} />
+                    </div>
+                    İletişim & Adres
                   </TabsTrigger>
                 </TabsList>
 
                 {/* SEKME 1: GENEL BİLGİLER */}
-                <TabsContent value="genel" className="animate-in fade-in-50 duration-500">
-                  <div className="grid grid-cols-2 gap-6">
+                <TabsContent value="genel" className="animate-in fade-in-50 slide-in-from-left-2 duration-500">
+                  <div className="grid grid-cols-4 gap-x-8 gap-y-10">
                     <FormField
                       control={form.control as any}
                       name="account_type"
@@ -237,10 +251,10 @@ export function CustomerFormDialog({
                       control={form.control as any}
                       name="title"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="font-bold">Ünvan / Firma Adı *</FormLabel>
+                        <FormItem className="col-span-3">
+                          <FormLabel className="font-bold text-sm">Ünvan / Firma Adı *</FormLabel>
                           <FormControl>
-                            <Input placeholder="Resmi Ünvan" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                            <Input placeholder="Resmi Ünvan" className="h-12 rounded-xl border-border/50 bg-muted/5 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-base" {...field} value={field.value as any} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -250,7 +264,7 @@ export function CustomerFormDialog({
                       control={form.control as any}
                       name="parent_id"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="col-span-1">
                           <FormLabel className="font-bold">Bağlı Olduğu Ana Cari</FormLabel>
                           <Select 
                             onValueChange={field.onChange} 
@@ -281,8 +295,8 @@ export function CustomerFormDialog({
                       control={form.control as any}
                       name="contact_person"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="font-bold">Yetkili Kişi</FormLabel>
+                        <FormItem className="col-span-3">
+                          <FormLabel className="font-bold">Yetkili Kişi (Ad Soyad)</FormLabel>
                           <FormControl>
                             <Input placeholder="Ad Soyad" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
                           </FormControl>
@@ -290,16 +304,20 @@ export function CustomerFormDialog({
                         </FormItem>
                       )}
                     />
-                    <div className="col-span-2">
+                    <div className="col-span-4">
                        <FormField
                         control={form.control as any}
                         name="notes"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="font-bold">İç Notlar / CRM</FormLabel>
+                          <FormItem className="bg-muted/5 p-6 rounded-2xl border border-border/30">
+                            <FormLabel className="font-bold flex items-center gap-2 mb-2">
+                              <Info size={16} className="text-primary" />
+                              İç Notlar / CRM Detayları
+                            </FormLabel>
                             <FormControl>
-                              <Textarea placeholder="Müşteriye özel notlar..." className="min-h-[100px] rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                              <Textarea placeholder="Müşteriye özel notlar..." className="min-h-[160px] rounded-xl border-border/50 bg-background/50 focus:bg-background transition-all" {...field} value={field.value as any} />
                             </FormControl>
+                            <FormDescription className="text-[11px]">Bu alan sadece kurum içi personel tarafından görülebilir.</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -309,38 +327,43 @@ export function CustomerFormDialog({
                 </TabsContent>
 
                 {/* SEKME 2: FİNANS VE RESMİ BİLGİLER */}
-                <TabsContent value="finans" className="animate-in fade-in-50 duration-500">
-                  <div className="grid grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control as any}
-                      name="tax_office"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="font-bold">Vergi Dairesi</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Daire Adı" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control as any}
-                      name="tax_number"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="font-bold">VKN / TCKN</FormLabel>
-                          <FormControl>
-                            <Input placeholder="10 veya 11 hane" className="h-11 rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="flex items-center justify-between p-4 border rounded-xl border-border/50 bg-muted/10 col-span-2">
-                      <div className="space-y-0.5">
-                        <Label className="text-base font-bold">e-Fatura Mükellefi</Label>
-                        <p className="text-sm text-muted-foreground">Bu seçimi açtığınızda e-fatura e-postası zorunlu olur.</p>
+                <TabsContent value="finans" className="animate-in fade-in-50 slide-in-from-left-2 duration-500">
+                  <div className="grid grid-cols-4 gap-8">
+                    <div className="col-span-4 bg-muted/5 p-6 rounded-2xl border border-border/30 grid grid-cols-2 gap-8 mb-4">
+                      <FormField
+                        control={form.control as any}
+                        name="tax_office"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-bold">Vergi Dairesi</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Daire Adı" className="h-11 rounded-xl border-border/50 bg-background/50" {...field} value={field.value as any} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control as any}
+                        name="tax_number"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-bold">VKN / TCKN</FormLabel>
+                            <FormControl>
+                              <Input placeholder="10 veya 11 hane" className="h-11 rounded-xl border-border/50 bg-background/50" {...field} value={field.value as any} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-6 border rounded-2xl border-primary/20 bg-primary/5 col-span-4 shadow-sm backdrop-blur-sm">
+                      <div className="space-y-1">
+                        <Label className="text-lg font-bold text-primary flex items-center gap-2">
+                          <Info size={20} />
+                          e-Fatura Mükellefi
+                        </Label>
+                        <p className="text-sm text-primary/70 font-medium">Bu cariye düzenlenecek tüm resmi evraklar e-fatura/e-arşiv sistemi üzerinden gönderilir.</p>
                       </div>
                       <FormField
                         control={form.control as any}
@@ -362,10 +385,10 @@ export function CustomerFormDialog({
                         control={form.control as any}
                         name="einvoice_email"
                         render={({ field }) => (
-                          <FormItem className="col-span-2 animate-in slide-in-from-top-2 duration-300">
-                            <FormLabel className="font-bold">e-Fatura E-postası *</FormLabel>
+                          <FormItem className="col-span-4 animate-in slide-in-from-top-4 duration-500">
+                            <FormLabel className="font-bold text-primary">Resmi e-Fatura E-posta Adresi * (GİB Zorunlu)</FormLabel>
                             <FormControl>
-                              <Input placeholder="fatura@firma.com" className="h-11 rounded-lg border-primary/30 bg-primary/5 focus:bg-background" {...field} value={field.value as any} />
+                              <Input placeholder="fatura@firma.com" className="h-12 rounded-xl border-primary/30 bg-primary/5 focus:bg-background border-dashed" {...field} value={field.value as any} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -411,11 +434,12 @@ export function CustomerFormDialog({
                       control={form.control as any}
                       name="iban"
                       render={({ field }) => (
-                        <FormItem className="col-span-2">
+                        <FormItem className="col-span-4">
                           <FormLabel className="font-bold">IBAN Numarası</FormLabel>
                           <FormControl>
                             <Input placeholder="TR..." className="h-11 rounded-lg border-border/50 bg-muted/20 font-mono" {...field} value={field.value as any} />
                           </FormControl>
+                          <FormDescription className="text-[10px]">Lütfen TR ile başlayan 26 haneli IBAN numarasını giriniz.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -424,8 +448,8 @@ export function CustomerFormDialog({
                 </TabsContent>
 
                 {/* SEKME 3: TİCARİ VE LOJİSTİK KOŞULLAR */}
-                <TabsContent value="ticari" className="animate-in fade-in-50 duration-500">
-                  <div className="grid grid-cols-2 gap-6">
+                <TabsContent value="ticari" className="animate-in fade-in-50 slide-in-from-left-2 duration-500">
+                  <div className="grid grid-cols-4 gap-8">
                     <FormField
                       control={form.control as any}
                       name="price_list_id"
@@ -501,22 +525,24 @@ export function CustomerFormDialog({
                       control={form.control as any}
                       name="region"
                       render={({ field }) => (
-                        <FormItem className="col-span-2">
-                          <FormLabel className="font-bold">Bölge / Rota</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={(field.value as any) || 'Merkez'} value={(field.value as any) || 'Merkez'}>
-                            <FormControl>
-                              <SelectTrigger className="h-11 rounded-lg border-border/50 bg-muted/20">
-                                <SelectValue placeholder="Seçiniz" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Merkez">Merkez</SelectItem>
-                              <SelectItem value="Kuzey Rotası">Kuzey Rotası</SelectItem>
-                              <SelectItem value="Güney Rotası">Güney Rotası</SelectItem>
-                              <SelectItem value="Şehir Dışı">Şehir Dışı</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>Kurye planlaması ve lojistik gruplama için gereklidir.</FormDescription>
+                        <FormItem className="col-span-4">
+                          <div className="bg-muted/10 p-6 rounded-2xl border border-border/30">
+                            <FormLabel className="font-bold mb-3 block">Bölge / Lojistik Rota Planlaması</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={(field.value as any) || 'Merkez'} value={(field.value as any) || 'Merkez'}>
+                              <FormControl>
+                                <SelectTrigger className="h-12 rounded-xl border-border/50 bg-background/50">
+                                  <SelectValue placeholder="Seçiniz" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Merkez">Merkez (Ana Depo)</SelectItem>
+                                <SelectItem value="Kuzey Rotası">Kuzey Rotası (Haftada 2 Gün)</SelectItem>
+                                <SelectItem value="Güney Rotası">Güney Rotası (Günlük Sevkiyat)</SelectItem>
+                                <SelectItem value="Şehir Dışı">Şehir Dışı (Kargo Aracı)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormDescription className="mt-2">Sevkiyat planlama algoritması bu veriye göre rotaları otomatik oluşturur.</FormDescription>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -525,8 +551,8 @@ export function CustomerFormDialog({
                 </TabsContent>
 
                 {/* SEKME 4: İLETİŞİM VE ADRES */}
-                <TabsContent value="adres" className="animate-in fade-in-50 duration-500">
-                  <div className="grid grid-cols-2 gap-6">
+                <TabsContent value="adres" className="animate-in fade-in-50 slide-in-from-left-2 duration-500">
+                  <div className="grid grid-cols-4 gap-8">
                     <FormField
                       control={form.control as any}
                       name="phone"
@@ -583,10 +609,10 @@ export function CustomerFormDialog({
                       control={form.control as any}
                       name="address"
                       render={({ field }) => (
-                        <FormItem className="col-span-2">
-                          <FormLabel className="font-bold">Açık Adres</FormLabel>
+                        <FormItem className="col-span-4">
+                          <FormLabel className="font-bold">Detaylı Açık Adres</FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Mahalle, Sokak, No..." className="min-h-[100px] rounded-lg border-border/50 bg-muted/20" {...field} value={field.value as any} />
+                            <Textarea placeholder="Mahalle, Sokak, No, Kapı No, Bina Adı..." className="min-h-[140px] rounded-xl border-border/50 bg-muted/5 focus:bg-background transition-all" {...field} value={field.value as any} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -598,6 +624,82 @@ export function CustomerFormDialog({
             </form>
           </Form>
         </div>
+
+        {/* SAĞ TARAF: ÖZET PANELİ */}
+        <div className="w-[400px] bg-muted/10 border-l border-border/40 overflow-y-auto hidden xl:flex flex-col p-8 gap-8 animate-in slide-in-from-right-4 duration-700">
+          <div className="space-y-1">
+            <h3 className="text-xl font-bold tracking-tight">Cari Hesap Özeti</h3>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Mevcut Durum Analizi</p>
+          </div>
+
+          {/* Bakiye Kartı */}
+          <div className="bg-gradient-to-br from-primary to-primary/80 p-6 rounded-3xl text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.02] duration-300">
+            <p className="text-xs font-bold opacity-80 uppercase tracking-widest mb-1">Güncel Bakiye</p>
+            <h2 className="text-3xl font-black tracking-tight mb-4">
+              {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: form.watch('currency') || 'TRY' }).format(124500.25)}
+            </h2>
+            <div className="flex items-center gap-2 bg-white/20 w-fit px-3 py-1 rounded-full text-xs font-bold border border-white/10">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Borç Bakiyesi (Alacaklı Değil)
+            </div>
+          </div>
+
+          {/* Risk Limiti */}
+          <div className="space-y-4 bg-background/50 p-6 rounded-2xl border border-border/30">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold">Kredi / Risk Limiti</p>
+              <span className="text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded-lg border border-primary/20">
+                {Math.round((124500.25 / (Number(form.watch('credit_limit')) || 250000)) * 100)}%
+              </span>
+            </div>
+            <div className="h-3 w-full bg-muted rounded-full overflow-hidden border border-border/20 shadow-inner">
+              <div 
+                className="h-full bg-gradient-to-r from-emerald-500 via-orange-500 to-red-500 transition-all duration-1000 ease-out" 
+                style={{ width: `${Math.min((124500.25 / (Number(form.watch('credit_limit')) || 250000)) * 100, 100)}%` }} 
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground font-medium italic">Toplam risk limitinin {new Intl.NumberFormat('tr-TR').format(Number(form.watch('credit_limit')) || 250000)} TRY kadarı kullanıldı.</p>
+          </div>
+
+          {/* İstatistikler */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-background/40 p-4 rounded-2xl border border-border/20 flex flex-col gap-1 shadow-sm">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-70">Açık Siparişler</p>
+              <p className="text-lg font-black tracking-tight">12 Adet</p>
+            </div>
+            <div className="bg-background/40 p-4 rounded-2xl border border-border/20 flex flex-col gap-1 shadow-sm">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-70">İade Oranı</p>
+              <p className="text-lg font-black tracking-tight text-destructive">2.4%</p>
+            </div>
+          </div>
+
+          {/* Son Aktivite */}
+          <div className="space-y-4">
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+              <HistoryIcon size={14} />
+              Son Hareketler
+            </p>
+            <div className="space-y-3">
+              {[
+                { date: '12 Mart', type: 'Satış Faturası', amount: '24.500₺', status: 'Ödendi' },
+                { date: '08 Mart', type: 'Tahsilat Makbuzu', amount: '10.000₺', status: 'Onaylı' },
+                { date: '01 Mart', type: 'Sipariş (Bekleyen)', amount: '15.200₺', status: 'Hazırlanıyor' },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-border/10 bg-muted/5 hover:bg-muted/10 transition-colors group cursor-default">
+                  <div className="flex flex-col">
+                    <p className="text-xs font-bold group-hover:text-primary transition-colors">{item.type}</p>
+                    <p className="text-[10px] text-muted-foreground font-medium">{item.date}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-black">{item.amount}</p>
+                    <p className="text-[9px] font-bold text-emerald-500 uppercase">{item.status}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
         <DialogFooter className="px-8 py-6 bg-muted/30 border-t border-border/50 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-muted-foreground">
