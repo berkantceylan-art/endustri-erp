@@ -172,7 +172,7 @@ export function CustomerFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-full max-w-[1600px] max-h-[92vh] overflow-hidden p-0 flex flex-col gap-0 border-none shadow-2xl bg-card transition-all duration-500">
+      <DialogContent className="max-w-[98vw] w-full max-w-[1700px] max-h-[96vh] overflow-hidden p-0 flex flex-col gap-0 border-none shadow-2xl bg-card transition-all duration-700">
         <DialogHeader className="px-8 py-6 bg-gradient-to-br from-primary/5 via-transparent to-transparent border-b border-border/50">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
@@ -188,10 +188,67 @@ export function CustomerFormDialog({
             </div>
           </div>
         </DialogHeader>
+        {/* ÜST ÖZET ŞERİDİ (SUMMARY BAR) */}
+        <div className="bg-muted/10 border-b border-border/40 px-10 py-5 flex items-center justify-between gap-6 overflow-x-auto whitespace-nowrap scrollbar-hide">
+          {/* Bakiye & Risk */}
+          <div className="flex items-center gap-6 divide-x divide-border/50 translate-z">
+            <div className="flex flex-col gap-1 pr-6">
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-70">Güncel Bakiye</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-black tracking-tight text-primary">
+                  {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: form.watch('currency') || 'TRY' }).format(124500.25)}
+                </span>
+                <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded font-bold border border-emerald-500/10">BORÇLU</span>
+              </div>
+            </div>
 
-        <div className="flex-1 overflow-hidden flex">
-          {/* SOL TARAF: FORM ALANI */}
-          <div className="flex-1 overflow-y-auto px-10 py-8 border-r border-border/40">
+            <div className="flex flex-col gap-2 pl-6 min-w-[240px]">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-70">Risk / Kredi Limiti</p>
+                <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">%{Math.round((124500.25 / (Number(form.watch('credit_limit')) || 250000)) * 100)}</span>
+              </div>
+              <div className="h-2 w-full bg-muted rounded-full overflow-hidden border border-border/20">
+                <div 
+                  className="h-full bg-gradient-to-r from-emerald-500 via-orange-500 to-red-500 transition-all duration-1000" 
+                  style={{ width: `${Math.min((124500.25 / (Number(form.watch('credit_limit')) || 250000)) * 100, 100)}%` }} 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* İstatistikler */}
+          <div className="flex items-center gap-4 border-x border-border/40 px-8">
+            <div className="flex flex-col items-center">
+              <span className="text-base font-black">12</span>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">Sipariş</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-base font-black text-destructive">2.4%</span>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">İade</p>
+            </div>
+          </div>
+
+          {/* Son Hareketler Şeridi (Compact) */}
+          <div className="flex items-center gap-3 overflow-hidden ml-auto">
+            <HistoryIcon size={16} className="text-muted-foreground shrink-0" />
+            <div className="flex gap-2">
+              {[
+                { date: '12 Mar', type: 'Fatura', amt: '24.5K' },
+                { date: '08 Mar', type: 'Tahsilat', amt: '10K' },
+                { date: '01 Mar', type: 'Sipariş', amt: '15.2K' }
+              ].map((h, i) => (
+                <div key={i} className="bg-background/40 border border-border/30 px-3 py-1.5 rounded-xl flex items-center gap-2 shadow-sm">
+                  <span className="text-[10px] font-bold">{h.amt}</span>
+                  <span className="text-[9px] text-muted-foreground font-medium">{h.type}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {/* ANA FORM ALANI - FULL WIDTH */}
+          <div className="px-10 py-10">
             <Form {...form as any}>
             <form id="customer-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -623,81 +680,6 @@ export function CustomerFormDialog({
               </Tabs>
             </form>
           </Form>
-        </div>
-
-        {/* SAĞ TARAF: ÖZET PANELİ */}
-        <div className="w-[400px] bg-muted/10 border-l border-border/40 overflow-y-auto hidden xl:flex flex-col p-8 gap-8 animate-in slide-in-from-right-4 duration-700">
-          <div className="space-y-1">
-            <h3 className="text-xl font-bold tracking-tight">Cari Hesap Özeti</h3>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Mevcut Durum Analizi</p>
-          </div>
-
-          {/* Bakiye Kartı */}
-          <div className="bg-gradient-to-br from-primary to-primary/80 p-6 rounded-3xl text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.02] duration-300">
-            <p className="text-xs font-bold opacity-80 uppercase tracking-widest mb-1">Güncel Bakiye</p>
-            <h2 className="text-3xl font-black tracking-tight mb-4">
-              {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: form.watch('currency') || 'TRY' }).format(124500.25)}
-            </h2>
-            <div className="flex items-center gap-2 bg-white/20 w-fit px-3 py-1 rounded-full text-xs font-bold border border-white/10">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Borç Bakiyesi (Alacaklı Değil)
-            </div>
-          </div>
-
-          {/* Risk Limiti */}
-          <div className="space-y-4 bg-background/50 p-6 rounded-2xl border border-border/30">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-bold">Kredi / Risk Limiti</p>
-              <span className="text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded-lg border border-primary/20">
-                {Math.round((124500.25 / (Number(form.watch('credit_limit')) || 250000)) * 100)}%
-              </span>
-            </div>
-            <div className="h-3 w-full bg-muted rounded-full overflow-hidden border border-border/20 shadow-inner">
-              <div 
-                className="h-full bg-gradient-to-r from-emerald-500 via-orange-500 to-red-500 transition-all duration-1000 ease-out" 
-                style={{ width: `${Math.min((124500.25 / (Number(form.watch('credit_limit')) || 250000)) * 100, 100)}%` }} 
-              />
-            </div>
-            <p className="text-[10px] text-muted-foreground font-medium italic">Toplam risk limitinin {new Intl.NumberFormat('tr-TR').format(Number(form.watch('credit_limit')) || 250000)} TRY kadarı kullanıldı.</p>
-          </div>
-
-          {/* İstatistikler */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-background/40 p-4 rounded-2xl border border-border/20 flex flex-col gap-1 shadow-sm">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-70">Açık Siparişler</p>
-              <p className="text-lg font-black tracking-tight">12 Adet</p>
-            </div>
-            <div className="bg-background/40 p-4 rounded-2xl border border-border/20 flex flex-col gap-1 shadow-sm">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-70">İade Oranı</p>
-              <p className="text-lg font-black tracking-tight text-destructive">2.4%</p>
-            </div>
-          </div>
-
-          {/* Son Aktivite */}
-          <div className="space-y-4">
-            <p className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-              <HistoryIcon size={14} />
-              Son Hareketler
-            </p>
-            <div className="space-y-3">
-              {[
-                { date: '12 Mart', type: 'Satış Faturası', amount: '24.500₺', status: 'Ödendi' },
-                { date: '08 Mart', type: 'Tahsilat Makbuzu', amount: '10.000₺', status: 'Onaylı' },
-                { date: '01 Mart', type: 'Sipariş (Bekleyen)', amount: '15.200₺', status: 'Hazırlanıyor' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-border/10 bg-muted/5 hover:bg-muted/10 transition-colors group cursor-default">
-                  <div className="flex flex-col">
-                    <p className="text-xs font-bold group-hover:text-primary transition-colors">{item.type}</p>
-                    <p className="text-[10px] text-muted-foreground font-medium">{item.date}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-black">{item.amount}</p>
-                    <p className="text-[9px] font-bold text-emerald-500 uppercase">{item.status}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 

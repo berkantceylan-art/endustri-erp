@@ -173,21 +173,36 @@ export function CurrentAccountsClient({
                       </div>
                     </TableCell>
                     <TableCell className="text-sm font-medium">
-                      {customer.parent?.title ? (
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-1 bg-blue-500/10 text-blue-600 text-xs font-bold rounded-lg border border-blue-500/20 whitespace-nowrap">
-                            {customer.parent.title}
+                      {(() => {
+                        const parentData = customer.parent;
+                        const parentTitle = Array.isArray(parentData) 
+                          ? parentData[0]?.title 
+                          : (parentData as any)?.title;
+                        
+                        if (parentTitle) {
+                          return (
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-1 bg-blue-500/10 text-blue-600 text-xs font-bold rounded-lg border border-blue-500/20 whitespace-nowrap">
+                                {parentTitle}
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        if (customer.parent_id) {
+                          return (
+                            <span className="text-[10px] font-mono text-muted-foreground bg-muted p-1 rounded">
+                              Bağlı (ID: {customer.parent_id.slice(0,8)}...)
+                            </span>
+                          );
+                        }
+
+                        return (
+                          <span className="text-muted-foreground/30 font-black text-[10px] border border-border/50 rounded-lg px-2 py-1 bg-muted/20 tracking-tighter uppercase">
+                            ANA CARİ (Üst Yok)
                           </span>
-                        </div>
-                      ) : customer.parent_id ? (
-                        <span className="text-[10px] font-mono text-muted-foreground bg-muted p-1 rounded">
-                          Bağlı (ID: {customer.parent_id.slice(0,8)}...)
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground/30 font-black text-[10px] border border-border/50 rounded-lg px-2 py-1 bg-muted/20 tracking-tighter uppercase">
-                          ANA CARİ (Üst Yok)
-                        </span>
-                      )}
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">

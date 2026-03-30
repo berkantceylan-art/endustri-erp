@@ -43,13 +43,26 @@ export async function getCustomers() {
   return data as Customer[]
 }
 
-// 2. Ana (Parent) Carileri getir
+// 2. Ana (Parent) Carileri getir (Sadece kendi firmasındakiler)
 export async function getParentCustomers() {
   const supabase = await createClient()
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) return []
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('tenant_id')
+    .eq('id', user.id)
+    .single()
+
+  const tenantId = profile?.tenant_id
+  if (!tenantId) return []
 
   const { data, error } = await supabase
     .from('customers')
     .select('id, title')
+    .eq('tenant_id', tenantId)
     .order('title', { ascending: true })
 
   if (error) {
