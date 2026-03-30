@@ -27,6 +27,13 @@ export async function register(formData: FormData) {
 
   // SUPABASE GÜVENLİK ÖNLEMİ (ENUMERATION PROTECTION) KONTROLÜ
   if (authError || !authData.user) {
+    // Özel durum: E-posta zaten kayıtlıysa yönlendirici mesaj ver
+    if (authError?.message?.includes('already been registered') || 
+        authError?.message?.includes('Email already exists') ||
+        authError?.message?.includes('User not allowed')) {
+      return redirect(`/register?message=${encodeURIComponent('Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapmayı deneyin veya şifrenizi sıfırlayın.')}`)
+    }
+    
     // admin.createUser kullanıldığı için artık sahte kimlik dönmez, doğrudan hata atar
     return redirect(`/register?message=${encodeURIComponent(authError?.message || 'Hesap oluşturulamadı.')}`)
   }
