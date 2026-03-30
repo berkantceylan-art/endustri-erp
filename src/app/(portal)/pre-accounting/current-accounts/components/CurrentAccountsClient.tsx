@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { deleteCustomer, Customer } from '../actions'
+import { deleteCustomer } from '../actions'
+import { Customer } from '../schema'
 import { CustomerFormDialog } from './CustomerFormDialog'
 import { Button } from '@/components/ui/button'
 import {
