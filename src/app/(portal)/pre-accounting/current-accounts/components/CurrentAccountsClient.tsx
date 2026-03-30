@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { deleteCustomer, Customer } from '../actions'
-import { CustomerFormDialog } from './components/CustomerFormDialog'
+import { CustomerFormDialog } from './CustomerFormDialog'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -16,6 +16,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -203,23 +204,23 @@ export function CurrentAccountsClient({
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0 border border-transparent hover:border-border">
-                            <span className="sr-only">Menü</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
+                        <DropdownMenuTrigger className="h-8 w-8 p-0 inline-flex items-center justify-center rounded-md border border-transparent hover:border-border transition-colors">
+                          <span className="sr-only">Menü</span>
+                          <MoreHorizontal className="h-4 w-4" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-[160px]">
-                          <DropdownMenuLabel>Aksiyonlar</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleEdit(customer)} className="cursor-pointer">
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Düzenle
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDeletePrompt(customer.id)} className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Sil
-                          </DropdownMenuItem>
+                          <DropdownMenuGroup>
+                            <DropdownMenuLabel>Aksiyonlar</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleEdit(customer)} className="cursor-pointer">
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Düzenle
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeletePrompt(customer.id)} className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Sil
+                            </DropdownMenuItem>
+                          </DropdownMenuGroup>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
