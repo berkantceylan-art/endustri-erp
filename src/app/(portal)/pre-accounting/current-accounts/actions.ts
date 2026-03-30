@@ -57,7 +57,7 @@ export async function getCustomers() {
   // tenant_id'ye göre filtrele
   const { data, error } = await supabase
     .from('customers')
-    .select('*, parent:customers!customers_parent_id_fkey(title)')
+    .select('*, parent:customers(title)')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 
