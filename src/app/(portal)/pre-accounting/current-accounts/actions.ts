@@ -105,6 +105,7 @@ export async function createCustomer(values: CustomerFormValues) {
         tenant_id,
         price_list_id: values.price_list_id === 'none' ? null : values.price_list_id,
         parent_id: values.parent_id === 'none' ? null : values.parent_id,
+        // gl_code ve zip_code zaten spread edildiği için otomatik eklenecek
       }
     ])
     .select()

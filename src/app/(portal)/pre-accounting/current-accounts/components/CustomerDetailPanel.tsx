@@ -39,12 +39,12 @@ export function CustomerDetailPanel({ customer, onEdit, isNew }: CustomerDetailP
     )
   }
 
-  // Mock Finansal Veriler (Grafik için)
-  const debit = 124500.25
-  const credit = 45000.00
-  const balance = debit - credit
+  // Finansal Veriler (Şu an için 0, Muhasebe modülü bağlandığında dolacak)
+  const debit = 0
+  const credit = 0
+  const balance = 0
   const riskLimit = Number(customer?.credit_limit) || 250000
-  const riskUsage = Math.min((debit / riskLimit) * 100, 100)
+  const riskUsage = 0
 
   return (
     <div className="h-full flex flex-col bg-card/30 backdrop-blur-xl animate-in slide-in-from-right-10 duration-700">
@@ -55,17 +55,24 @@ export function CustomerDetailPanel({ customer, onEdit, isNew }: CustomerDetailP
             <div className="w-20 h-20 rounded-3xl bg-primary text-primary-foreground flex items-center justify-center shadow-2xl shadow-primary/30 ring-4 ring-primary/10">
               <span className="text-3xl font-black">{customer?.title?.substring(0,2).toUpperCase() || 'NC'}</span>
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-3xl font-black tracking-tight">{customer?.title || 'Yeni Cari Hesap'}</h2>
-                {customer?.account_type && (
-                  <span className="px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/20">
-                    {customer.account_type}
-                  </span>
-                )}
+                <div className="flex gap-2">
+                  {customer?.account_type && (
+                    <span className="px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/20">
+                      {customer.account_type}
+                    </span>
+                  )}
+                  {customer?.gl_code && (
+                    <span className="px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-mono">
+                      {customer.gl_code}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-4 text-muted-foreground font-medium text-sm">
-                <span className="flex items-center gap-1.5"><MapPin size={14} className="text-primary" /> {customer?.city || 'Şehir seçilmedi'}</span>
+                <span className="flex items-center gap-1.5"><MapPin size={14} className="text-primary" /> {customer?.city || 'Şehir seçilmedi'} {customer?.district ? `/ ${customer.district}` : ''}</span>
                 <span className="flex items-center gap-1.5"><Briefcase size={14} className="text-primary" /> {customer?.contact_person || 'Yetkili yok'}</span>
               </div>
             </div>
@@ -87,10 +94,9 @@ export function CustomerDetailPanel({ customer, onEdit, isNew }: CustomerDetailP
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 bg-muted/10 border border-border/40 rounded-[32px] p-8 space-y-6 backdrop-blur-md">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Mali Durum Özeti (Borç/Alacak)</h4>
+              <h4 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Mali Durum Özeti (Genel Muhasebe Entegrasyonu)</h4>
               <div className="flex items-center gap-4 text-[10px] font-bold">
-                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500" /> Tahsilatlar</span>
-                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-primary" /> Satışlar</span>
+                 <span className="text-muted-foreground italic font-medium">Henüz finansal hareket bulunmuyor</span>
               </div>
             </div>
             
@@ -157,13 +163,13 @@ export function CustomerDetailPanel({ customer, onEdit, isNew }: CustomerDetailP
             icon={<Phone className="text-blue-500" />} 
             label="İletişim" 
             value={customer?.phone || '-'} 
-            sub={customer?.email} 
+            sub={customer?.zip_code ? `${customer.zip_code} / ${customer?.email}` : customer?.email} 
           />
           <DetailCard 
             icon={<FileText className="text-orange-500" />} 
-            label="Vergi Kimlik" 
-            value={customer?.tax_number || '-'} 
-            sub={customer?.tax_office} 
+            label="Muhasebe & Vergi" 
+            value={customer?.gl_code || 'KOD YOK'} 
+            sub={`${customer?.tax_number || '-'} / ${customer?.tax_office || '-'}`} 
           />
           <DetailCard 
             icon={<CreditCard className="text-emerald-500" />} 
@@ -179,39 +185,18 @@ export function CustomerDetailPanel({ customer, onEdit, isNew }: CustomerDetailP
           />
         </div>
 
-        {/* WOW ELEMENT 2: ACTIVITY TIMELINE */}
+        {/* ACTIVITY TIMELINE - EMPTY STATE */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-3">
               <History size={18} className="text-primary" /> Son Etkinlikler
             </h4>
-            <Button variant="link" className="text-xs font-bold p-0 flex items-center gap-1 group">
-               Tümünü Gör <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </Button>
           </div>
 
-          <div className="relative space-y-4 before:absolute before:left-6 before:top-2 before:bottom-2 before:w-[1px] before:bg-gradient-to-b before:from-primary/50 before:via-border before:to-transparent">
-             {[
-               { id: 1, type: 'SALE', title: 'Yeni Fatura Kesildi', desc: 'SAT-00245 nolu fatura oluşturuldu', date: 'Bugün, 14:20', amount: '₺12.450,00', icon: <ArrowUpRight className="text-red-500" /> },
-               { id: 2, type: 'HEAL', title: 'Ödeme Alındı', desc: 'Garanti BBVA hesabına havale girişi', date: 'Dün, 10:15', amount: '₺5.000,00', icon: <ArrowDownRight className="text-emerald-500" /> },
-               { id: 3, type: 'EDIT', title: 'Cari Bilgileri Güncellendi', desc: 'Firma ünvanı ve vergi dairesi düzenlendi', date: '21 Mart 2026', amount: null, icon: <History className="text-blue-500" /> },
-             ].map((item) => (
-               <div key={item.id} className="relative pl-14 group">
-                  <div className="absolute left-3 top-1 w-6 h-6 rounded-full bg-background border-2 border-border group-hover:border-primary transition-colors z-10 flex items-center justify-center p-1">
-                     {item.icon}
-                  </div>
-                  <div className="bg-background/40 hover:bg-background/60 border border-border/40 rounded-3xl p-5 flex items-center justify-between transition-all group-hover:translate-x-1 group-hover:shadow-md cursor-default">
-                    <div className="space-y-1">
-                      <p className="text-sm font-bold">{item.title}</p>
-                      <p className="text-xs text-muted-foreground font-medium">{item.desc}</p>
-                      <p className="text-[10px] text-muted-foreground/60 font-medium pt-1 uppercase tracking-tighter">{item.date}</p>
-                    </div>
-                    {item.amount && (
-                      <span className="text-sm font-black tracking-tight">{item.amount}</span>
-                    )}
-                  </div>
-               </div>
-             ))}
+          <div className="bg-muted/5 border border-dashed border-border/60 rounded-[32px] p-12 text-center">
+             <History size={32} className="mx-auto text-muted-foreground/30 mb-4" />
+             <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Henüz bir etkinlik kaydedilmedi</p>
+             <p className="text-[10px] text-muted-foreground/60 font-medium mt-1">Muhasebe fişleri ve faturalar oluşturulduğunda burada görünecektir.</p>
           </div>
         </div>
 

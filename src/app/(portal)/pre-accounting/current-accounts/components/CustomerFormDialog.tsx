@@ -81,11 +81,22 @@ export function CustomerFormDialog({
       region: initialData?.region || 'Merkez',
       city: initialData?.city || '',
       district: initialData?.district || '',
+      zip_code: initialData?.zip_code || '',
+      gl_code: initialData?.gl_code || '',
       address: initialData?.address || '',
       notes: initialData?.notes || '',
       parent_id: initialData?.parent_id || 'none',
     },
   })
+
+  // Muhasebe Kodu Otomatik Öneri Mantığı
+  useEffect(() => {
+    if (!isEditMode && !form.getValues('gl_code')) {
+      const type = form.watch('account_type')
+      const prefix = type === 'Tedarikçi' ? '320' : '120';
+      form.setValue('gl_code', `${prefix}.MERKEZ.XXX`, { shouldValidate: true });
+    }
+  }, [form.watch('account_type'), isEditMode])
 
   // Edit modunda verileri formun içine doldur
   useEffect(() => {
@@ -111,6 +122,8 @@ export function CustomerFormDialog({
         region: initialData.region || 'Merkez',
         city: initialData.city || '',
         district: initialData.district || '',
+        zip_code: initialData.zip_code || '',
+        gl_code: initialData.gl_code || '',
         address: initialData.address || '',
         notes: initialData.notes || '',
         parent_id: initialData.parent_id || 'none',
@@ -137,6 +150,8 @@ export function CustomerFormDialog({
         region: 'Merkez',
         city: '',
         district: '',
+        zip_code: '',
+        gl_code: '120.MERKEZ.XXX',
         address: '',
         notes: '',
         parent_id: 'none',
@@ -195,25 +210,18 @@ export function CustomerFormDialog({
               {/* Bakiye & Risk (Sadece Düzenleme Modunda) */}
               <div className="flex items-center gap-10 divide-x divide-border/50 translate-z">
                 <div className="flex flex-col gap-1.5 pr-10">
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-70">Güncel Bakiye</p>
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-70">Muhasebe Kodu</p>
                   <div className="flex items-baseline gap-3">
-                    <span className="text-3xl font-black tracking-tight text-primary">
-                      {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: form.watch('currency') || 'TRY' }).format(124500.25)}
+                    <span className="text-xl font-black tracking-tight text-primary font-mono">
+                      {form.watch('gl_code') || 'KOD TANIMSIZ'}
                     </span>
-                    <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-lg font-bold border border-emerald-500/20">BORÇLU</span>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2.5 pl-10 min-w-[320px]">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-70">Risk / Kredi Limiti</p>
-                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg border border-primary/20">%{Math.round((124500.25 / (Number(form.watch('credit_limit')) || 250000)) * 100)}</span>
-                  </div>
-                  <div className="h-2.5 w-full bg-muted/50 rounded-full overflow-hidden border border-border/20 shadow-inner">
-                    <div 
-                      className="h-full bg-gradient-to-r from-emerald-500 via-orange-500 to-red-500 transition-all duration-1000" 
-                      style={{ width: `${Math.min((124500.25 / (Number(form.watch('credit_limit')) || 250000)) * 100, 100)}%` }} 
-                    />
+                <div className="flex flex-col gap-1.5 px-10">
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-70">Finansal Durum</p>
+                  <div className="flex items-baseline gap-3">
+                     <span className="text-xs font-bold text-muted-foreground italic">Gerçek zamanlı bakiye verisi için işlem bekleniyor...</span>
                   </div>
                 </div>
               </div>
@@ -232,18 +240,10 @@ export function CustomerFormDialog({
 
               {/* Son Hareketler Şeridi (Compact) */}
               <div className="flex items-center gap-4 overflow-hidden ml-auto">
-                <HistoryIcon size={18} className="text-muted-foreground shrink-0 opacity-50" />
-                <div className="flex gap-3">
-                  {[
-                    { date: '12 Mar', type: 'Fatura', amt: '24.5K' },
-                    { date: '08 Mar', type: 'Tahsilat', amt: '10K' },
-                    { date: '01 Mar', type: 'Sipariş', amt: '15.2K' }
-                  ].map((h, i) => (
-                    <div key={i} className="bg-background/60 border border-border/40 px-4 py-2 rounded-2xl flex items-center gap-3 shadow-sm hover:border-primary/30 transition-all cursor-default">
-                      <span className="text-xs font-black tracking-tight">{h.amt}</span>
-                      <span className="text-[10px] text-muted-foreground font-semibold uppercase">{h.type}</span>
+                 <div className="flex gap-3">
+                    <div className="bg-primary/5 border border-primary/20 px-4 py-2 rounded-2xl flex items-center gap-3">
+                      <span className="text-[10px] text-primary font-black uppercase tracking-widest">Resmi Bilgiler Aktif</span>
                     </div>
-                  ))}
                 </div>
               </div>
             </>
@@ -482,11 +482,25 @@ export function CustomerFormDialog({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="TRY">TRY</SelectItem>
-                              <SelectItem value="USD">USD</SelectItem>
-                              <SelectItem value="EUR">EUR</SelectItem>
+                              <SelectItem value="TRY">TRY (₺)</SelectItem>
+                              <SelectItem value="USD">USD ($)</SelectItem>
+                              <SelectItem value="EUR">EUR (€)</SelectItem>
                             </SelectContent>
                           </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="gl_code"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1">
+                          <FormLabel className="font-bold text-xs uppercase tracking-widest text-primary">Genel Muhasebe Kodu *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="120.01.001" className="h-14 rounded-2xl border-primary/30 bg-primary/5 focus:bg-background px-5 font-mono font-bold" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormDescription className="text-[10px]">Genel muhasebe entegrasyonu için gereklidir.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -674,6 +688,19 @@ export function CustomerFormDialog({
                           <FormLabel className="font-bold text-xs uppercase tracking-widest opacity-70">İlçe</FormLabel>
                           <FormControl>
                             <Input placeholder="Kadıköy" className="h-14 rounded-2xl border-border/50 bg-muted/20 px-5" {...field} value={field.value as any} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control as any}
+                      name="zip_code"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold text-xs uppercase tracking-widest opacity-70">Posta Kodu</FormLabel>
+                          <FormControl>
+                            <Input placeholder="34000" className="h-14 rounded-2xl border-border/50 bg-muted/20 px-5" {...field} value={field.value as any} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
