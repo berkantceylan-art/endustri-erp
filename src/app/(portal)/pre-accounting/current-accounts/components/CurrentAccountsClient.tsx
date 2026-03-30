@@ -1,19 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { deleteCustomer } from '../actions'
 import { Customer } from '../schema'
 import { CustomerFormDialog } from './CustomerFormDialog'
+import { CustomerDetailPanel } from './CustomerDetailPanel'
 import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Input } from '@/components/ui/input'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,13 +27,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Users, Building2, MapPin, Truck, History, MoreHorizontal, Pencil, Trash2, Plus, Loader2 } from 'lucide-react'
-
-// Note: In Next.js App Router, to fetch data initially via Server component, 
-// we usually use a Server component wrapper. Because we need interactivity (edit/delete states),
-// we will make page.tsx a Client Component by default and fetch data, or separate it.
-// To keep it simple and fulfill the requirement securely, we separate Page to be a Server 
-// component passing props to a Client wrapper.
+import { 
+  Users, 
+  Search, 
+  Filter, 
+  MoreVertical, 
+  Pencil, 
+  Trash2, 
+  Plus, 
+  Loader2,
+  ChevronRight,
+  TrendingUp,
+  MapPin
+} from 'lucide-react'
 
 export function CurrentAccountsClient({ 
   customers, 
@@ -49,12 +49,25 @@ export function CurrentAccountsClient({
   parentCustomers: { id: string, title: string }[] 
 }) {
   const router = useRouter()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterType, setFilterType] = useState<string | null>(null)
+  
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(customers?.[0] || null)
   
   const [alertOpen, setAlertOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Filtreleme & Arama Mantığı
+  const filteredCustomers = useMemo(() => {
+    return customers?.filter(c => {
+      const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            c.customer_code?.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesFilter = !filterType || c.account_type === filterType
+      return matchesSearch && matchesFilter
+    })
+  }, [customers, searchTerm, filterType])
 
   const handleEdit = (customer: Customer) => {
     setSelectedCustomer(customer)
@@ -79,6 +92,9 @@ export function CurrentAccountsClient({
       if (res.success) {
         setAlertOpen(false)
         router.refresh()
+        if (selectedCustomer?.id === deleteId) {
+           setSelectedCustomer(customers?.[0] || null)
+        }
       } else {
         alert("Hata: " + res.message)
       }
@@ -91,184 +107,139 @@ export function CurrentAccountsClient({
   }
 
   return (
-    <div className="flex flex-col gap-6 h-full p-4 md:p-6 lg:p-8 animate-in fade-in zoom-in-95 duration-300">
+    <div className="flex h-screen overflow-hidden bg-background">
       
-      {/* BAŞLIK & ACTİON BAR */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-card/40 border border-border/50 p-6 rounded-3xl backdrop-blur-md shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="bg-primary/10 p-3 rounded-2xl text-primary border border-primary/20">
-            <Users size={24} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">Cari Hesaplar</h1>
-            <p className="text-sm text-muted-foreground font-medium">Birlikte çalıştığınız laboratuvar, doktor ve tedarikçileriniz.</p>
-          </div>
-        </div>
+      {/* SOL PANEL: MASTER LIST (MASTER) */}
+      <div className="w-full lg:w-[400px] xl:w-[450px] border-r border-border/50 flex flex-col bg-card/20 backdrop-blur-md">
         
-        <div className="flex items-center gap-2">
-          <Button onClick={handleAddNew} className="flex items-center gap-2 px-6">
-            <Plus size={16} /> Yeni Cari Kartı
-          </Button>
-        </div>
-      </div>
-
-      {/* İSTATİSTİK (KÜÇÜK KPI'LAR ŞİMDİLİK STATİK/SAYIMSAL) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-card/40 border border-border/50 p-5 rounded-3xl flex items-center gap-4">
-          <div className="bg-blue-500/10 p-3 rounded-2xl text-blue-500">
-            <Building2 size={20} />
+        {/* HEADER & SEARCH */}
+        <div className="p-6 space-y-6 border-b border-border/40">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 p-2.5 rounded-2xl text-primary border border-primary/20">
+                <Users size={20} />
+              </div>
+              <h1 className="text-xl font-black tracking-tight">Cari Hesaplar</h1>
+            </div>
+            <Button onClick={handleAddNew} size="icon" className="rounded-full h-10 w-10 shadow-lg shadow-primary/20">
+              <Plus size={20} />
+            </Button>
           </div>
-          <div>
-            <p className="text-xs uppercase tracking-wider font-bold text-muted-foreground">Toplam Cari</p>
-            <p className="text-2xl font-bold">{customers?.length || 0}</p>
+
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
+            <Input 
+              placeholder="Ünvan veya kod ile ara..." 
+              className="pl-11 h-12 rounded-2xl bg-muted/20 border-transparent focus:bg-background focus:ring-4 focus:ring-primary/10 transition-all font-medium" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            {['Müşteri', 'Tedarikçi', 'Hem Müşteri Hem Tedarikçi'].map(type => (
+              <Button 
+                key={type}
+                variant={filterType === type ? 'default' : 'outline'}
+                onClick={() => setFilterType(filterType === type ? null : type)}
+                className="rounded-full h-8 text-[10px] font-black uppercase tracking-wider px-4 shrink-0 transition-all"
+              >
+                {type}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* COMPACT LIST */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+          {filteredCustomers?.length === 0 ? (
+            <div className="text-center py-20 animate-in fade-in duration-500">
+               <p className="text-sm font-bold text-muted-foreground/50 uppercase tracking-widest">Kayıt Bulunamadı</p>
+            </div>
+          ) : (
+            filteredCustomers?.map((customer) => (
+              <div 
+                key={customer.id} 
+                onClick={() => setSelectedCustomer(customer)}
+                className={`
+                  p-4 rounded-[24px] cursor-pointer transition-all duration-300 group relative overflow-hidden border
+                  ${selectedCustomer?.id === customer.id 
+                    ? 'bg-primary text-primary-foreground border-primary shadow-xl shadow-primary/20 scale-[1.02]' 
+                    : 'hover:bg-muted/30 border-transparent hover:border-border/50'
+                  }
+                `}
+              >
+                <div className="flex items-center gap-4 relative z-10">
+                   <div className={`
+                      w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm transition-transform duration-500 group-hover:scale-110
+                      ${selectedCustomer?.id === customer.id ? 'bg-white/20 text-white' : 'bg-primary/5 text-primary'}
+                   `}>
+                     {customer.title.substring(0,2).toUpperCase()}
+                   </div>
+                   <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                         <h3 className="font-bold truncate text-sm">{customer.title}</h3>
+                         <ChevronRight size={14} className={`transition-transform duration-500 ${selectedCustomer?.id === customer.id ? 'translate-x-1 opacity-100' : 'opacity-0'}`} />
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                         <span className={`text-[9px] font-bold uppercase tracking-tighter opacity-70`}>{customer.customer_code || 'KOD YOK'}</span>
+                         <div className={`w-1 h-1 rounded-full ${selectedCustomer?.id === customer.id ? 'bg-white/50' : 'bg-muted-foreground/30'}`} />
+                         <span className="text-[9px] font-bold uppercase tracking-tighter opacity-70 truncate max-w-[100px]">{customer.region || 'Bölge Belirsiz'}</span>
+                      </div>
+                   </div>
+                </div>
+                {selectedCustomer?.id === customer.id && (
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12 transition-transform duration-1000 scale-150 blur-2xl" />
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* FOOTER STATS */}
+        <div className="p-6 border-t border-border/40 bg-muted/5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-black text-primary">{filteredCustomers?.length}</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Kayıt Listelendi</span>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl border border-border/30 hover:bg-background transition-all">
+                <Filter size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[200px] rounded-2xl p-2 border-border/50">
+               <DropdownMenuLabel className="text-xs uppercase tracking-widest font-black opacity-50 p-3">Sıralama</DropdownMenuLabel>
+               <DropdownMenuItem className="rounded-xl p-3 font-bold text-sm cursor-pointer">A-Z Sırala</DropdownMenuItem>
+               <DropdownMenuItem className="rounded-xl p-3 font-bold text-sm cursor-pointer">Z-A Sırala</DropdownMenuItem>
+               <DropdownMenuSeparator className="bg-border/50" />
+               <DropdownMenuItem onClick={() => router.refresh()} className="rounded-xl p-3 font-bold text-sm cursor-pointer">Yenile</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* SAĞ PANEL: DETAIL DASHBOARD (DETAY) */}
+      <div className="flex-1 bg-background relative overflow-hidden flex flex-col">
+        <CustomerDetailPanel 
+          customer={selectedCustomer} 
+          onEdit={handleEdit}
+        />
+        
+        {/* ALT ŞERİT (DURUM ÇUBUĞU) */}
+        <div className="h-10 bg-muted/5 border-t border-border/40 px-6 flex items-center justify-between backdrop-blur-md relative z-10 shrink-0">
+          <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
+             <span className="flex items-center gap-1.5 underline decoration-primary decoration-2 underline-offset-4">Bağlantı: Aktif (GİB)</span>
+             <span>Sürüm: 1.0.4-α</span>
+          </div>
+          <div className="flex items-center gap-2">
+             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+             <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500">Sistem Çevrimiçi</span>
           </div>
         </div>
       </div>
 
-      {/* VERİ TABLOSU */}
-      <div className="bg-card/50 border border-border/50 rounded-3xl overflow-hidden backdrop-blur-md shadow-lg flex-1">
-        <div className="p-1">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="font-bold text-muted-foreground">Ünvan / Vergi Bilgileri</TableHead>
-                <TableHead className="font-bold text-muted-foreground">Bağlı Olduğu Ana Cari</TableHead>
-                <TableHead className="font-bold text-muted-foreground">Bölge & Teslimat</TableHead>
-                <TableHead className="font-bold text-muted-foreground text-center">İskonto</TableHead>
-                <TableHead className="font-bold text-muted-foreground">Finans & Vade</TableHead>
-                <TableHead className="text-right font-bold text-muted-foreground w-[100px]">Aksiyon</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {customers?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-40 text-center text-muted-foreground font-medium">
-                    <div className="flex flex-col items-center justify-center gap-2 opacity-50">
-                      <History size={32} />
-                      <p>Kayıtlı hiçbir cari bulunamadı.</p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                customers?.map((customer: any) => (
-                  <TableRow key={customer.id} className="border-border/50 group hover:bg-muted/30 transition-colors">
-                    <TableCell className="py-4">
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-foreground group-hover:text-primary transition-colors">{customer.title}</span>
-                          {customer.account_type && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                              {customer.account_type}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          {customer.customer_code ? (
-                            <span className="font-mono bg-muted/50 px-1.5 py-0.5 rounded border border-border/50">{customer.customer_code}</span>
-                          ) : null}
-                          {customer.tax_number && (
-                            <span>VN: {customer.tax_number} {customer.tax_office ? `/ ${customer.tax_office}` : ''}</span>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm font-medium">
-                      {(() => {
-                        const parentData = customer.parent;
-                        const parentTitle = Array.isArray(parentData) 
-                          ? parentData[0]?.title 
-                          : (parentData as any)?.title;
-                        
-                        if (parentTitle) {
-                          return (
-                            <div className="flex items-center gap-2">
-                              <span className="px-2 py-1 bg-blue-500/10 text-blue-600 text-xs font-bold rounded-lg border border-blue-500/20 whitespace-nowrap">
-                                {parentTitle}
-                              </span>
-                            </div>
-                          );
-                        }
-
-                        if (customer.parent_id) {
-                          return (
-                            <span className="text-[10px] font-mono text-muted-foreground bg-muted p-1 rounded">
-                              Bağlı (ID: {customer.parent_id.slice(0,8)}...)
-                            </span>
-                          );
-                        }
-
-                        return (
-                          <span className="text-muted-foreground/30 font-black text-[10px] border border-border/50 rounded-lg px-2 py-1 bg-muted/20 tracking-tighter uppercase">
-                            ANA CARİ (Üst Yok)
-                          </span>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground max-w-[150px] truncate" title={customer.region}>
-                          <MapPin size={12} className="text-orange-500 shrink-0" />
-                          <span className="truncate">{customer.region || '-'}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                          <Truck size={12} className="text-emerald-500 shrink-0" />
-                          {customer.delivery_method || '-'}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 bg-destructive/10 text-destructive text-xs font-black rounded-lg border border-destructive/20">
-                        %{customer.custom_discount_rate}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex gap-2 items-center">
-                           {customer.currency && (
-                            <span className="text-xs font-black bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded border border-blue-500/20">{customer.currency}</span>
-                           )}
-                           {customer.payment_term_days ? (
-                            <span className="text-xs font-bold text-muted-foreground">{customer.payment_term_days} Gün Vade</span>
-                           ) : (
-                            <span className="text-xs font-bold text-emerald-500">Peşin</span>
-                           )}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                          Limit: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: customer.currency || 'TRY' }).format(customer.credit_limit || 0)}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="h-8 w-8 p-0 inline-flex items-center justify-center rounded-md border border-transparent hover:border-border transition-colors">
-                          <span className="sr-only">Menü</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[160px]">
-                          <DropdownMenuGroup>
-                            <DropdownMenuLabel>Aksiyonlar</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleEdit(customer)} className="cursor-pointer">
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Düzenle
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeletePrompt(customer.id)} className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Sil
-                            </DropdownMenuItem>
-                          </DropdownMenuGroup>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
-      {/* CREATE & EDIT DIALOG MODAL */}
+      {/* CREATE & EDIT DIALOG MODAL (Açılır pencere form için hala gerekli ama yönetim Dashboard'da) */}
       <CustomerFormDialog 
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -278,18 +249,23 @@ export function CurrentAccountsClient({
 
       {/* DELETE CONFIRMATION MODAL */}
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
-        <AlertDialogContent className="border-border/50">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive font-bold">Cari Hesabı Sil</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bu işlem geri alınamaz. Cari hesap kalıcı olarak sistemden silinecektir. Devam etmek istiyor musunuz?
+        <AlertDialogContent className="border-border/50 rounded-3xl p-8 max-w-md animate-in slide-in-from-bottom-10 duration-500">
+          <AlertDialogHeader className="space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mx-auto mb-4 border border-destructive/20 animate-bounce">
+              <Trash2 size={24} />
+            </div>
+            <AlertDialogTitle className="text-2xl font-black tracking-tight text-center">Cari Hesabı Sil?</AlertDialogTitle>
+            <AlertDialogDescription className="text-center font-medium opacity-80">
+              <span className="block font-bold mt-2 text-foreground">"{customers?.find(c => c.id === deleteId)?.title}"</span>
+              isimli cari hesap kalıcı olarak sistemden silinecektir. Bu işlem <span className="text-destructive font-black underline decoration-destructive/30 decoration-4">GERİ ALINAMAZ</span>. 
+              Tüm fatura ve sipariş geçmişi etkilenecektir.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>İptal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90 text-white">
+          <AlertDialogFooter className="mt-8 flex-col-reverse sm:flex-row gap-3">
+            <AlertDialogCancel disabled={isDeleting} className="h-14 rounded-2xl border-border/50 font-bold uppercase tracking-widest text-xs flex-1">Vazgeç</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90 text-white h-14 rounded-2xl font-bold uppercase tracking-widest text-xs flex-1 shadow-lg shadow-destructive/20 active:scale-95 transition-all">
               {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Evet, Sil
+              HESABI SİL
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
