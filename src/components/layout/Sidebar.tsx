@@ -1,11 +1,18 @@
 'use client'
-import { LayoutDashboard, Users, Package, BarChart3, Settings, Menu, ChevronDown, ChevronRight } from 'lucide-react'
+import { 
+  LayoutDashboard, Users, Package, BarChart3, Settings, Menu, 
+  ChevronDown, ChevronRight, Calculator, FileText, Banknote, 
+  Wallet, Briefcase, FileSpreadsheet, Building, Clock, MapPin, 
+  Fingerprint, CreditCard, PieChart, Activity
+} from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 
 type SubItem = {
   label: string
   href: string
+  icon?: React.ReactNode
 }
 
 type RouteItem = {
@@ -18,18 +25,32 @@ type RouteItem = {
 }
 
 const SidebarItem = ({ route, collapsed }: { route: RouteItem, collapsed: boolean }) => {
-  const [isOpen, setIsOpen] = useState(false)
-  const hasSubItems = route.subItems && route.subItems.length > 0
+  const pathname = usePathname();
+  // Bulunduğumuz sayfa bu modülün altındaysa varsayılan olarak açık tut
+  const isPathActive = route.subItems?.some(sub => pathname?.startsWith(sub.href)) || pathname?.startsWith(route.href || '');
+  const [isOpen, setIsOpen] = useState(isPathActive);
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Daraltılmış modda popover'ın ekrandan taşmasını önlemek için
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  const hasSubItems = route.subItems && route.subItems.length > 0;
 
   if (hasSubItems) {
     return (
-      <div className="flex flex-col">
+      <div 
+        className="relative flex flex-col font-medium"
+        onMouseEnter={() => collapsed && setIsHovered(true)}
+        onMouseLeave={() => collapsed && setIsHovered(false)}
+      >
         <button 
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between py-3 px-3 rounded-xl hover:bg-card hover:text-foreground hover:shadow-sm border border-transparent hover:border-border/50 text-muted-foreground transition-all group"
+          onClick={() => !collapsed && setIsOpen(!isOpen)}
+          className={`w-full flex items-center justify-between py-3 px-3 rounded-xl transition-all group border border-transparent
+            ${isOpen && !collapsed ? 'bg-primary/10 text-primary border-primary/20' : 'hover:bg-card text-muted-foreground hover:text-foreground hover:border-border/50 hover:shadow-sm'}
+          `}
         >
           <div className="flex items-center gap-4">
-            <div className="text-muted-foreground group-hover:text-primary transition-colors shrink-0">
+            <div className={`shrink-0 transition-colors ${isOpen && !collapsed ? 'text-primary' : 'group-hover:text-primary'}`}>
               {route.icon}
             </div>
             {!collapsed && (
@@ -37,118 +58,179 @@ const SidebarItem = ({ route, collapsed }: { route: RouteItem, collapsed: boolea
             )}
           </div>
           {!collapsed && (
-            <div className="text-muted-foreground">
-              {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            <div className={`transition-transform duration-300 ${isOpen ? 'rotate-180 text-primary' : 'text-muted-foreground/60'}`}>
+              <ChevronDown size={16} />
             </div>
           )}
         </button>
         
-        {/* Alt Menüler (Sadece sidebar açıkken ve menü genişletilmişken görünür) */}
-        {isOpen && !collapsed && (
-          <div className="flex flex-col gap-1 mt-1 ml-10 border-l border-border/50 pl-4 py-1">
-            {route.subItems!.map((sub, idx) => (
-              <Link
-                key={idx}
-                href={sub.href}
-                className="py-2 text-sm text-muted-foreground hover:text-primary transition-colors font-medium"
-              >
-                {sub.label}
-              </Link>
-            ))}
+        {/* Geniş Mod - Akordeon (Smooth transition ile) */}
+        {!collapsed && (
+          <div 
+            className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}
+          >
+            <div className="overflow-hidden flex flex-col gap-1 ml-9 border-l border-border/60 pl-4 py-1">
+              {route.subItems!.map((sub, idx) => (
+                <Link
+                  key={idx}
+                  href={sub.href}
+                  className={`py-2 text-xs transition-colors rounded-lg px-2 flex items-center gap-2
+                    ${pathname?.startsWith(sub.href) ? 'text-primary font-semibold bg-primary/5' : 'text-muted-foreground hover:text-foreground hover:bg-card/50'}
+                  `}
+                >
+                  {sub.icon && <span className="opacity-70">{sub.icon}</span>}
+                  <span className="truncate">{sub.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Dar Mod - Hover Popover */}
+        {collapsed && isHovered && (
+          <div 
+            ref={popoverRef}
+            className="absolute left-[calc(100%+8px)] top-0 w-60 bg-popover text-popover-foreground border border-border shadow-2xl rounded-xl z-50 p-2 animate-in fade-in zoom-in-95 duration-200"
+          >
+            <div className="px-3 py-2 text-sm font-bold border-b border-border/50 mb-2 text-primary">
+              {route.label}
+            </div>
+            <div className="flex flex-col gap-1">
+              {route.subItems!.map((sub, idx) => (
+                <Link
+                  key={idx}
+                  href={sub.href}
+                  className="py-2 px-3 text-sm transition-colors rounded-lg hover:bg-muted font-medium flex items-center gap-2"
+                >
+                  {sub.icon && <span className="opacity-70">{sub.icon}</span>}
+                  {sub.label}
+                </Link>
+              ))}
+            </div>
           </div>
         )}
       </div>
     )
   }
 
+  // Alt menüsü olmayan normal linkler (Örn: Dashboard)
   return (
-    <Link 
-      href={route.href || '#'} 
-      className="flex items-center gap-4 py-3 px-3 rounded-xl hover:bg-card hover:text-foreground hover:shadow-sm border border-transparent hover:border-border/50 text-muted-foreground transition-all group"
+    <div 
+      className="relative"
+      onMouseEnter={() => collapsed && setIsHovered(true)}
+      onMouseLeave={() => collapsed && setIsHovered(false)}
     >
-      <div className="text-muted-foreground group-hover:text-primary transition-colors shrink-0">
-        {route.icon}
-      </div>
-      {!collapsed && (
-        <span className="text-sm font-semibold whitespace-nowrap">{route.label}</span>
+      <Link 
+        href={route.href || '#'} 
+        className={`flex items-center gap-4 py-3 px-3 rounded-xl transition-all group border border-transparent
+          ${pathname === route.href ? 'bg-primary/10 text-primary border-primary/20' : 'hover:bg-card text-muted-foreground hover:text-foreground hover:border-border/50 hover:shadow-sm'}
+        `}
+      >
+        <div className={`shrink-0 transition-colors ${pathname === route.href ? 'text-primary' : 'group-hover:text-primary'}`}>
+          {route.icon}
+        </div>
+        {!collapsed && (
+          <span className="text-sm font-semibold whitespace-nowrap">{route.label}</span>
+        )}
+      </Link>
+
+      {/* Dar Mod - Normal Linkler için basit Tooltip */}
+      {collapsed && isHovered && (
+        <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 px-3 py-2 bg-popover text-popover-foreground border border-border shadow-xl rounded-lg z-50 animate-in fade-in zoom-in-95 duration-200 text-sm font-bold whitespace-nowrap">
+          {route.label}
+        </div>
       )}
-    </Link>
+    </div>
   )
 }
 
 export function Sidebar({ userRole, tenantName, moduleAccess }: { userRole: string, tenantName: string, moduleAccess: string[] }) {
   const [collapsed, setCollapsed] = useState(false)
 
-  // Veritabanındaki module_access alanına göre menüyü filtreleriz
+  // Kurumsal ERP Standartlarına Göre Güncellenmiş Route Dizisi
   const allRoutes: RouteItem[] = [
     { label: 'Dashboard', icon: <LayoutDashboard size={20} />, href: '/dashboard', id: 'dashboard' },
+    
+    // 1. ÖN MUHASEBE MODÜLÜ
     { 
       label: 'Ön Muhasebe', 
-      icon: <BarChart3 size={20} />, 
+      icon: <Calculator size={20} />, 
       id: 'pre_accounting',
       subItems: [
-        { label: 'Müşteriler', href: '/accounting/customers' },
-        { label: 'Tedarikçiler', href: '/accounting/suppliers' },
-        { label: 'Ürünler', href: '/accounting/products' }
+        { label: 'Cari Hesaplar', href: '/accounting/accounts', icon: <Users size={14} /> },
+        { label: 'Satış Faturaları', href: '/accounting/sales-invoices', icon: <FileText size={14} /> },
+        { label: 'Alış Faturaları', href: '/accounting/purchase-invoices', icon: <FileText size={14} /> },
+        { label: 'Kasa & Banka İşlemleri', href: '/accounting/cash-bank', icon: <Banknote size={14} /> },
+        { label: 'Tahsilat & Ödemeler', href: '/accounting/transactions', icon: <Wallet size={14} /> }
       ]
     },
+
+    // 2. GENEL MUHASEBE MODÜLÜ
     { 
       label: 'Genel Muhasebe', 
-      icon: <Package size={20} />, 
+      icon: <PieChart size={20} />, 
       id: 'general_accounting',
       subItems: [
-        { label: 'Hesap Planı', href: '/general-accounting/chart-of-accounts' },
-        { label: 'Fiş Girişi', href: '/general-accounting/voucher-entry' }
+        { label: 'Tek Düzen Hesap Planı', href: '/general-accounting/chart-of-accounts', icon: <FileSpreadsheet size={14} /> },
+        { label: 'Yevmiye Fişleri', href: '/general-accounting/journal-vouchers', icon: <FileText size={14} /> },
+        { label: 'Mizan & Bilanço', href: '/general-accounting/balance-sheet', icon: <BarChart3 size={14} /> },
+        { label: 'e-Logo Entegrasyon Ayarları', href: '/general-accounting/logo-integration', icon: <Settings size={14} /> }
       ]
     },
-    { 
-      label: 'PDKS', 
-      icon: <Users size={20} />, 
-      id: 'pdks',
-      subItems: [
-        { label: 'Personel Takip (PDKS)', href: '/pdks' }
-      ]
-    },
+
+    // 3. İK (İNSAN KAYNAKLARI)
     { 
       label: 'İnsan Kaynakları', 
-      icon: <Users size={20} />, 
+      icon: <Briefcase size={20} />, 
       id: 'hr',
       subItems: [
-        { label: 'İK Yönetimi', href: '/hr' }
+        { label: 'Personel Listesi', href: '/hr/employees', icon: <Users size={14} /> },
+        { label: 'İzin Yönetimi', href: '/hr/leave-management', icon: <MapPin size={14} /> },
+        { label: 'Bordro & Avanslar', href: '/hr/payroll', icon: <CreditCard size={14} /> },
+        { label: 'Performans Yönetimi', href: '/hr/performance', icon: <Activity size={14} /> }
       ]
     },
+
+    // 4. PDKS
+    { 
+      label: 'PDKS', 
+      icon: <Clock size={20} />, 
+      id: 'pdks',
+      subItems: [
+        { label: 'Giriş / Çıkış Logları', href: '/pdks/access-logs', icon: <Fingerprint size={14} /> },
+        { label: 'Vardiya Planlama', href: '/pdks/shifts', icon: <Clock size={14} /> },
+        { label: 'Fazla Mesai Onayları', href: '/pdks/overtime', icon: <FileText size={14} /> },
+        { label: 'Cihaz Yönetimi (RFID/QR)', href: '/pdks/devices', icon: <Building size={14} /> }
+      ]
+    },
+
     { label: 'Kullanıcılar', icon: <Users size={20} />, href: '/users', id: 'users', roles: ['admin'] },
     { label: 'Genel Ayarlar', icon: <Settings size={20} />, href: '/settings', id: 'settings', roles: ['admin'] },
   ]
 
-  // Rota filtreleme:
+  // Klasik erişim kontrolü filtresi
   const routes = allRoutes.filter(route => {
-    // Sadece admin özel bir sayfaysa
     if (route.roles && !route.roles.includes(userRole)) return false;
-    
-    // Admin her şeye erişebilsin
     if (userRole === 'admin') return true;
-
-    // Diğer roller için modül erişim kontrolü
     return moduleAccess && moduleAccess.includes(route.id);
   })
 
   return (
-    <aside className={`transition-all duration-300 border-r border-border/40 bg-card/30 backdrop-blur-xl flex flex-col z-20 ${collapsed ? 'w-20' : 'w-64'}`}>
+    <aside className={`transition-all duration-300 border-r border-border/40 bg-card/30 backdrop-blur-xl flex flex-col z-30 relative ${collapsed ? 'w-[84px]' : 'w-72'}`}>
       <div className="h-20 shrink-0 flex items-center justify-between px-6 border-b border-border/40">
         {!collapsed && (
           <div className="flex items-center gap-3 overflow-hidden whitespace-nowrap">
             <div className="w-8 h-8 shrink-0 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-md shadow-primary/20">
               {tenantName ? tenantName.substring(0, 1).toUpperCase() : 'E'}
             </div>
-            <span className="font-bold tracking-tight text-md truncate w-36" title={tenantName}>
+            <span className="font-bold tracking-tight text-md truncate w-40" title={tenantName}>
               {tenantName || 'ErpSys'}
             </span>
           </div>
         )}
         <button 
           onClick={() => setCollapsed(!collapsed)} 
-          className={`text-muted-foreground hover:text-foreground transition-colors ${collapsed ? 'mx-auto' : ''}`}
+          className={`text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-xl transition-colors ${collapsed ? 'mx-auto' : ''}`}
         >
           <Menu size={20} />
         </button>
