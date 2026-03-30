@@ -157,7 +157,7 @@ export function Sidebar({ userRole, tenantName, moduleAccess }: { userRole: stri
       icon: <Calculator size={20} />, 
       id: 'pre_accounting',
       subItems: [
-        { label: 'Cari Hesaplar', href: '/accounting/accounts', icon: <Users size={14} /> },
+        { label: 'Cari Hesaplar', href: '/pre-accounting/current-accounts', icon: <Users size={14} /> },
         { label: 'Satış Faturaları', href: '/accounting/sales-invoices', icon: <FileText size={14} /> },
         { label: 'Alış Faturaları', href: '/accounting/purchase-invoices', icon: <FileText size={14} /> },
         { label: 'Kasa & Banka İşlemleri', href: '/accounting/cash-bank', icon: <Banknote size={14} /> },
