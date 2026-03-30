@@ -100,10 +100,32 @@ export function CustomerFormDialog({
               {/* SÜTUN 1: KİMLİK & İLETİŞİM */}
               <div className="space-y-5 bg-card/20 p-5 rounded-2xl border border-border/40">
                 <h3 className="text-sm font-black uppercase tracking-widest text-primary/80 border-b border-border/50 pb-2">
-                  1. Kimlik & İletişim
+                  1. Kimlik & Sınıflandırma
                 </h3>
                 
                 <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="customer_code" className="text-xs font-bold text-muted-foreground ml-1">Cari Kodu *</Label>
+                      <Input id="customer_code" name="customer_code" required defaultValue={initialData?.customer_code || ''} placeholder="Örn: CARI-001" className="bg-background/50 h-10 font-mono text-sm uppercase" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="customer_type" className="text-xs font-bold text-muted-foreground ml-1">Sınıflandırma / Türü</Label>
+                      <Select name="customer_type" defaultValue={initialData?.customer_type || 'Müşteri'}>
+                        <SelectTrigger className="bg-background/50 h-10">
+                          <SelectValue placeholder="Seçiniz" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Müşteri">Müşteri</SelectItem>
+                          <SelectItem value="Tedarikçi">Tedarikçi</SelectItem>
+                          <SelectItem value="Personel">Personel</SelectItem>
+                          <SelectItem value="Ortak">Ortak</SelectItem>
+                          <SelectItem value="Diğer">Diğer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
                   <div className="space-y-1.5">
                     <Label htmlFor="title" className="text-xs font-bold text-muted-foreground ml-1">Cari Ünvanı *</Label>
                     <Input id="title" name="title" required defaultValue={initialData?.title || ''} placeholder="Tam Ünvan" className="bg-background/50 h-10" />
@@ -132,7 +154,7 @@ export function CustomerFormDialog({
                       name="address" 
                       defaultValue={initialData?.address || ''} 
                       placeholder="Mahalle, Sokak, Kapı No vs..." 
-                      className="w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-none" 
+                      className="w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px] resize-none" 
                     />
                   </div>
                 </div>

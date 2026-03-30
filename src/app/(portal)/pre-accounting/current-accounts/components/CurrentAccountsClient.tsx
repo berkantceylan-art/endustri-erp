@@ -152,11 +152,23 @@ export function CurrentAccountsClient({
                 customers?.map((customer: any) => (
                   <TableRow key={customer.id} className="border-border/50 group hover:bg-muted/30 transition-colors">
                     <TableCell className="py-4">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-foreground group-hover:text-primary transition-colors">{customer.title}</span>
-                        {customer.tax_number && (
-                          <span className="text-xs text-muted-foreground">VN: {customer.tax_number} {customer.tax_office ? `/ ${customer.tax_office}` : ''}</span>
-                        )}
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-foreground group-hover:text-primary transition-colors">{customer.title}</span>
+                          {customer.customer_type && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                              {customer.customer_type}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {customer.customer_code ? (
+                            <span className="font-mono bg-muted/50 px-1.5 py-0.5 rounded border border-border/50">{customer.customer_code}</span>
+                          ) : null}
+                          {customer.tax_number && (
+                            <span>VN: {customer.tax_number} {customer.tax_office ? `/ ${customer.tax_office}` : ''}</span>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-sm font-medium">

@@ -7,6 +7,8 @@ export type Customer = {
   id: string
   tenant_id: string
   title: string
+  customer_code: string | null
+  customer_type: string | null
   tax_number: string | null
   tax_office: string | null
   phone: string | null
@@ -21,15 +23,30 @@ export type Customer = {
   delivery_method: string | null
   parent_id: string | null
   created_at: string
+  updated_at: string
+  parent?: {
+    title: string
+  }
 }
 
-// 1. Tüm carileri (customers) getir
+// 1. Carileri Listele
 export async function getCustomers() {
   const supabase = await createClient()
 
+  // Kullanıcının tenant_id'sini auth metadata'dan al
+  const { data: { user } } = await supabase.auth.getUser()
+  const tenantId = user?.user_metadata?.tenant_id
+
+  if (!tenantId) {
+    console.error('Tenant ID not found in user metadata')
+    return []
+  }
+
+  // tenant_id'ye göre filtrele
   const { data, error } = await supabase
     .from('customers')
-    .select('*, parent:customers(title)')
+    .select('*, parent:customers!customers_parent_id_fkey(title)')
+    .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -37,14 +54,13 @@ export async function getCustomers() {
     return []
   }
 
-  return data as (Customer & { parent: { title: string } | null })[]
+  return data as Customer[]
 }
 
 // 2. Ana (Parent) Carileri getir (Alt müşteri seçimi için)
 export async function getParentCustomers() {
   const supabase = await createClient()
 
-  // Tüm carileri getirelim ki, ara-katman ebeveynler (parent) seçildiğinde formda ID yerine İsim yazabilsin.
   const { data, error } = await supabase
     .from('customers')
     .select('id, title')
@@ -79,6 +95,9 @@ export async function createCustomer(formData: FormData) {
 
   // Form verilerini çıkar
   const title = formData.get('title') as string
+  const customer_code = formData.get('customer_code') as string
+  const customer_type = formData.get('customer_type') as string
+  
   const taxNumber = formData.get('tax_number') as string
   const taxOffice = formData.get('tax_office') as string
   const phone = formData.get('phone') as string
@@ -90,7 +109,6 @@ export async function createCustomer(formData: FormData) {
   const customDiscountRate = customDiscountRateStr ? parseInt(customDiscountRateStr, 10) : 0
 
   const priceListType = formData.get('price_list_type') as string
-  // price_list_id şimdilik frontendden gelmeyebilir
   const priceListIdStr = formData.get('price_list_id') as string
   const priceListId = priceListIdStr && priceListIdStr !== 'none' ? priceListIdStr : null
 
@@ -109,6 +127,8 @@ export async function createCustomer(formData: FormData) {
       {
         tenant_id,
         title,
+        customer_code: customer_code || null,
+        customer_type: customer_type || 'Müşteri',
         tax_number: taxNumber || null,
         tax_office: taxOffice || null,
         phone: phone || null,
@@ -140,6 +160,8 @@ export async function updateCustomer(id: string, formData: FormData) {
   const supabase = await createClient()
 
   const title = formData.get('title') as string
+  const customer_code = formData.get('customer_code') as string
+  const customer_type = formData.get('customer_type') as string
   const taxNumber = formData.get('tax_number') as string
   const taxOffice = formData.get('tax_office') as string
   const phone = formData.get('phone') as string
@@ -167,6 +189,8 @@ export async function updateCustomer(id: string, formData: FormData) {
     .from('customers')
     .update({
       title,
+      customer_code: customer_code || null,
+      customer_type: customer_type || 'Müşteri',
       tax_number: taxNumber || null,
       tax_office: taxOffice || null,
       phone: phone || null,
