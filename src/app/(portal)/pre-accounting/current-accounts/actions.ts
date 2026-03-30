@@ -33,12 +33,24 @@ export type Customer = {
 export async function getCustomers() {
   const supabase = await createClient()
 
-  // Kullanıcının tenant_id'sini auth metadata'dan al
-  const { data: { user } } = await supabase.auth.getUser()
-  const tenantId = user?.user_metadata?.tenant_id
+  // Kullanıcının tenant_id'sini users (profiller) tablosundan çek
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  
+  if (userError || !user) {
+    console.error('User not authenticated')
+    return []
+  }
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('tenant_id')
+    .eq('id', user.id)
+    .single()
+
+  const tenantId = profile?.tenant_id
 
   if (!tenantId) {
-    console.error('Tenant ID not found in user metadata')
+    console.error('Tenant ID not found in users table')
     return []
   }
 
